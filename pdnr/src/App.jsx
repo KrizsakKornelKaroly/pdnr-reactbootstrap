@@ -13,71 +13,41 @@ import ListGroup from 'react-bootstrap/ListGroup';
 function App() {
   return (
     <>
+    <h1>Üdvözöllek a PDNR v1.0 rendszerben!</h1>
 
     <Container>
       <Row>
-        <Col><Card>
-            <Card.Img variant="top" src="./public/android-chrome-192x192.png" />
+        <Col className='kartyak'>
+          <Card>
+            <Card.Img variant="top" src="/android-chrome-192x192.png" className='kepek'/>
             <Card.Body>
               <Card.Title>SZNR v3.0</Card.Title>
               <ListGroup variant="flush">
-                <ListGroup.Item>Szolgálati Nyílvántartó Rendszer v3.0</ListGroup.Item>
+                <ListGroup.Item>Szolgálati Nyílvántartó Rendszer</ListGroup.Item>
                 <ListGroup.Item>Szolgálatban töltött idő mérése</ListGroup.Item>
                 <ListGroup.Item>Időösszesítő táblázat</ListGroup.Item>
               </ListGroup>
-              <Button variant="primary">Belépés</Button>
+              <Button variant="primary" className='gombok'>Belépés</Button>
             </Card.Body>
           </Card>
       </Col>
-      <Col>
+      <Col className='kartyak'>
       <Card>
-            <Card.Img variant="top" src="./public/android-chrome-192x192.png" />
+            <Card.Img variant="top" src="/android-chrome-192x192.png" className='kepek'/>
             <Card.Body>
               <Card.Title>Állománydokumentáció</Card.Title>
               <ListGroup variant="flush">
-                <ListGroup.Item>Cras justo odio</ListGroup.Item>
-                <ListGroup.Item>Dapibus ac facilisis in</ListGroup.Item>
-                <ListGroup.Item>Vestibulum at eros</ListGroup.Item>
+                <ListGroup.Item>Teljes állománylista</ListGroup.Item>
+                <ListGroup.Item>Eltöltött idők az állományban/rangon</ListGroup.Item>
+                <ListGroup.Item>Rendfokozatok, figyelmeztetések</ListGroup.Item>
               </ListGroup>
-              <Button variant="primary">Go somewhere</Button>
+              <Button variant="primary" className='gombok'>Belépés</Button>
             </Card.Body>
       </Card>
       </Col>
       </Row>
-      <Row>
-        <Col>
-        <Card>
-            <Card.Img variant="top" src="./public/android-chrome-192x192.png" />
-            <Card.Body>
-              <Card.Title>Card Title</Card.Title>
-              <Card.Text>
-                Some quick example text to build on the card title and make up the
-                bulk of the card's content.
-              </Card.Text>
-              <Button variant="primary">Go somewhere</Button>
-            </Card.Body>
-        </Card>
-        </Col>
-        <Col>
-        <Card>
-            <Card.Img variant="top" src="./public/android-chrome-192x192.png" />
-            <Card.Body>
-              <Card.Title>Card Title</Card.Title>
-              <Card.Text>
-                Some quick example text to build on the card title and make up the
-                bulk of the card's content.
-              </Card.Text>
-              <Button variant="primary">Go somewhere</Button>
-            </Card.Body>
-      </Card>
-        </Col>
-      </Row>
-    </Container>
-      
-      
-      
-      
 
+    </Container>
 
       {/*
       <div>
