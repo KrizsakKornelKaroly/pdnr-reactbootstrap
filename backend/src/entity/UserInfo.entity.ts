@@ -1,13 +1,15 @@
 import { IsDate, IsEmail, Max, Min } from "class-validator";
-import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany, CreateDateColumn } from "typeorm";
+import { Duty } from "./Duty.entity";
 
-enum UserType {
+export enum UserType {
     ADMIN = "admin",
-    USER = "user"
+    USER = "user",
+    LEADER= "leader",
 }
 
 @Entity({ name: "userInfo" })
-export class User {
+export class UserInfo {
     @PrimaryGeneratedColumn()
     user_id: number;
 
@@ -24,15 +26,15 @@ export class User {
     @IsEmail()
     email: string;
 
-    @Column({ type: "varchar", length: 45 })
-    @Min(8)
-    @Max(45)
+    @Column({ type: "varchar"})
     password: string;
 
     @Column({ type: "enum", enum: UserType, default: UserType.USER })
     userLevel: UserType;
 
-    @Column({ type: "datetime", default: () => "CURRENT_TIMESTAMP" })
-    @IsDate()
+    @CreateDateColumn()
     joinDate: Date;
+
+    @OneToMany(() => Duty, (duty) => duty.userInfo)
+    duties: Duty[];
 }
