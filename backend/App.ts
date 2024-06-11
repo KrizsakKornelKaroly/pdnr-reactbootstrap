@@ -1,45 +1,45 @@
-import express from "express";
-import { createClient } from "redis";
-import session from "express-session";
-import connectRedis from "connect-redis";
+import express from 'express';
+import session from 'express-session';
+import RedisStore from 'connect-redis';
+import Redis from 'ioredis';
 import { AppDataSource } from "./src/data-source";
 import { UserInfo } from "./src/entity/UserInfo.entity";
-import registrationRouter from "./src/routes/register.route";
-import loginRouter from "./src/routes/login.router";
-
+import router from "./src/routes";
+import "dotenv/config";
 
 AppDataSource.initialize()
   .then(async () => {
-    const app = express();
-    const port = 3000;
-    app.use(express.json());
-
-    app.use(
-      session({
-        secret: process.env.SESSION_SECRET,
-        resave: false, // Don't save session if unmodified
-        saveUninitialized: false, // Don't create session until something stored
-      })
-    );
-
-    // Now you can use req.session to store or access session data
-    app.get("/", (req, res) => {
-      // Increment a counter in the session
-      if (req.session) {
-        console.log(req.session)
-      } else {
-        console.log('error')
-      }
-
-      res.send(`You have visited this page ${req.session} times`);
-    });
-
     const userRepo = AppDataSource.getRepository(UserInfo);
     const user = await userRepo.findOneBy({ user_id: 1 });
     console.log(user);
+    const app = express();
+    const port = 3000;
 
-    app.use(registrationRouter);
-    app.use(loginRouter);
+    const redisClient = new Redis({
+      host: "localhost",
+      port: 6379,
+    });
+
+    redisClient.on("error", (err) => {
+      console.error("Redis Client Error", err);
+    });
+
+    //const RedisStore = connectRedis(session);
+    
+    app.use(
+      session({
+        store: new RedisStore({ client: redisClient }),
+        secret: process.env.SESSION_SECRET,
+        resave: false,
+        saveUninitialized: false,
+        cookie: { secure: false }, // Set to true if using HTTPS
+      })
+    );
+
+    app.use(express.json());
+    app.use(express.urlencoded({ extended: true }));
+
+    app.use("/v1", router);
 
     app.listen(port, () => console.log(`Server listening on port ${port}!`));
   })
