@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { comparePassword } from "../services/password.services"
+import { comparePassword } from "../services/password.services";
 import { AppDataSource } from "../data-source";
 import { UserInfo } from "../entity/UserInfo.entity";
 
@@ -8,33 +8,33 @@ declare module 'express-session' {
         user_id: number;
         userLevel: string;
     }
-  }
+}
 
 export const loginController = async (req: Request, res: Response) => {
     try {
         const { email, password } = req.body;
 
         if (!email || !password) {
-            return res.status(400).json({ error: "Email and password are required." });
+            return res.status(400).json({ error: "E-mail cím és jelszó megadása kötelező." });
         }
 
         const userRepository = AppDataSource.getRepository(UserInfo);
         const user = await userRepository.findOne({ where: { email } });
 
-
         if (!user) {
-            return res.status(404).json({ error: "User not found." });
+            return res.status(401).json({ error: "Hibás E-mail vagy jelszó." });
         }
 
         const passwordMatch = await comparePassword(password, user.password);
 
         if (!passwordMatch) {
-            return res.status(401).json({ error: "Incorrect password." });
+            return res.status(401).json({ error: "Hibás E-mail vagy jelszó." });
         }
+
         req.session.user_id = user.user_id;
         req.session.userLevel = user.userLevel; // Optional: store userLevel
         console.log(req.session)
-        res.status(200).json({ message: "Login successful", user });
+        res.status(200).json({ message: "Sikeres bejelentkezés", user });
 
     } catch (error) {
         console.error("Error occurred while logging in:", error);

@@ -6,6 +6,12 @@ import { AppDataSource } from "./src/data-source";
 import { UserInfo } from "./src/entity/UserInfo.entity";
 import router from "./src/routes";
 import "dotenv/config";
+import cors from 'cors';
+
+var corsOptions = {
+  origin: 'http://localhost:5173',
+  optionsSuccessStatus: 200 // some legacy browsers (IE11, various SmartTVs) choke on 204
+}
 
 AppDataSource.initialize()
   .then(async () => {
@@ -39,7 +45,7 @@ AppDataSource.initialize()
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
 
-    app.use("/v1", router);
+    app.use("/v1", cors(corsOptions), router);
 
     app.listen(port, () => console.log(`Server listening on port ${port}!`));
   })
