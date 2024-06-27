@@ -1,0 +1,19 @@
+.kartyak {
+  display: flex;
+  flex-direction: row;
+}
+
+.kartya {
+  display: flex;
+  flex-direction: row;
+  text-align: center;
+  align-items: center;
+  justify-items: center;
+}
+
+.kepek {
+  max-width: 192px;
+  max-height: 192px;
+  display: block;
+  margin: 0 auto;
+}

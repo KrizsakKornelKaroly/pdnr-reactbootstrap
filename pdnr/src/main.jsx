@@ -8,7 +8,7 @@ import App from './App.jsx'
 import './index.css'
 import { AuthProvider } from './context/AuthContext';
 import ErrorPage from './pages/ErrorPage.jsx';
-import LoginPage from './pages/LoginPage.jsx';
+import LoginPage from './pages/login/LoginPage.jsx';
 
 const router = createBrowserRouter([
   {
