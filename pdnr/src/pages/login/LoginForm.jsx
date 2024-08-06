@@ -3,29 +3,29 @@ import { Form, Button } from 'react-bootstrap';
 
 const LoginForm = ({ email, setEmail, password, setPassword, handleSubmit }) => {
   return (
-    <Form onSubmit={handleSubmit}>
+    <Form className='login-form ' onSubmit={handleSubmit}>
       <Form.Group controlId="formBasicEmail">
-        <Form.Label>Email address</Form.Label>
+        <Form.Label>Email cím</Form.Label>
         <Form.Control 
           type="email" 
-          placeholder="Enter email" 
+          placeholder="Email" 
           value={email} 
-          onChange={(e) => setEmail(e.target.value)} 
+          onChange={(e) => setEmail(e.target.value)}  
         />
       </Form.Group>
 
       <Form.Group controlId="formBasicPassword">
-        <Form.Label>Password</Form.Label>
+        <Form.Label>Jelszó</Form.Label>
         <Form.Control 
           type="password" 
-          placeholder="Password" 
+          placeholder="Jelszó" 
           value={password} 
           onChange={(e) => setPassword(e.target.value)} 
         />
       </Form.Group>
 
-      <Button variant="primary" type="submit" block>
-        Login
+      <Button variant="primary" type="submit" className="w-100">
+        Bejelentkezés
       </Button>
     </Form>
   );

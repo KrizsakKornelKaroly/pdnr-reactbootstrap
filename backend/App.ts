@@ -8,11 +8,6 @@ import router from "./src/routes";
 import "dotenv/config";
 import cors from 'cors';
 
-var corsOptions = {
-  origin: 'http://localhost:5173',
-  optionsSuccessStatus: 200 // some legacy browsers (IE11, various SmartTVs) choke on 204
-}
-
 AppDataSource.initialize()
   .then(async () => {
     const userRepo = AppDataSource.getRepository(UserInfo);
@@ -38,14 +33,31 @@ AppDataSource.initialize()
         secret: process.env.SESSION_SECRET,
         resave: false,
         saveUninitialized: false,
-        cookie: { secure: false }, // Set to true if using HTTPS
+        cookie: { 
+          secure: false,
+          httpOnly: true,
+          maxAge: 1000 * 60 * 60 * 24, // 1 day
+        }
+        
       })
     );
 
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
-
-    app.use("/v1", cors(corsOptions), router);
+    app.use(cors({
+      origin: 'http://localhost:5173',
+      credentials: true, // Ensure cookies are sent
+      optionsSuccessStatus: 200
+    }));
+    
+    
+    // Apply routes
+    app.use("/v1", router);
+    app.use((req, res, next) => {
+      console.log(`Received ${req.method} request for ${req.originalUrl}`);
+      next();
+    });
+    
 
     app.listen(port, () => console.log(`Server listening on port ${port}!`));
   })

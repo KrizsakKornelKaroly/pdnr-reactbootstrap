@@ -7,6 +7,7 @@ declare module 'express-session' {
     export interface SessionData {
         user_id: number;
         userLevel: string;
+        ic_name: string;
     }
 }
 
@@ -32,8 +33,11 @@ export const loginController = async (req: Request, res: Response) => {
         }
 
         req.session.user_id = user.user_id;
-        req.session.userLevel = user.userLevel; // Optional: store userLevel
-        console.log(req.session)
+        req.session.userLevel = user.userLevel;
+        req.session.ic_name = user.ic_name; // Optional: store userLevel
+        console.log(req.session);
+
+        // Respond with JSON indicating successful login
         res.status(200).json({ message: "Sikeres bejelentkezés", user });
 
     } catch (error) {
