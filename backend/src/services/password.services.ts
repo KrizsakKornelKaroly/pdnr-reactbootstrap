@@ -1,6 +1,6 @@
 import * as bcrypt from 'bcrypt';
 
-const validatePassword = (password: string): boolean => {
+export const validatePassword = (password: string): boolean => {
   const minLength = 8;
   const hasLowercase = /[a-z]/.test(password);
   const hasUppercase = /[A-Z]/.test(password);
@@ -10,7 +10,7 @@ const validatePassword = (password: string): boolean => {
   return password.length >= minLength && hasLowercase && hasUppercase && hasNumber && hasSpecialChar;
 };
 
-const sanitizeInput = (input: string): string => input.replace(/['"]/g, '');
+export const sanitizeInput = (input: string): string => input.replace(/['"]/g, '');
 
 export const encryptPassword = async (password: string): Promise<string> => {
   if (!validatePassword(password)) {

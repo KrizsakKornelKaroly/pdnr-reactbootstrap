@@ -17,7 +17,7 @@ AppDataSource.initialize()
     redisClient.connect().catch(console.error);
 
     // Initialize store.
-    const redisStore = connectRedis(session);
+    const redisStore = new connectRedis(session);
 
     // Initialize session storage.
     app.use(

@@ -1,12 +1,12 @@
-import * as redis from 'redis';
-const client = redis.createClient();
+import Redis from 'ioredis';
 
-client.on('error', (err) => {
-  console.log(`Redis Error: ${err}`);
+const redisClient = new Redis({
+  host: 'localhost',
+  port: 6379,
 });
 
-module.exports = client;
+redisClient.on('error', (err) => {
+  console.error('Redis Client Error:', err);
+});
 
-export async function storeResetToken(userId: string, token: string) {
-  await client.setEx(`reset_token:${token}`, 3600, userId); // Expires in 1 hour
-}
+export default redisClient;
