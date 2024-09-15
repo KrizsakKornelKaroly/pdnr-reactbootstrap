@@ -10,6 +10,7 @@ import { AuthProvider } from './context/AuthContext';
 import ErrorPage from './pages/ErrorPage.jsx';
 import LoginPage from './pages/login/LoginPage.jsx';
 import ProtectedPage from './pages/ProtectedPage.jsx';
+import ResetPasswordComponent from './components/ResetPasswordComponent.jsx';
 
 const router = createBrowserRouter([
   {
@@ -24,6 +25,10 @@ const router = createBrowserRouter([
   {
     path: "/test",
     element: <ProtectedPage />
+  },
+  {
+    path: "/reset-password",
+    element: <ResetPasswordComponent />
   }
 ]);
 
