@@ -1,8 +1,8 @@
 import * as express from 'express';
 import { requestPasswordResetController } from '../controllers/requestPasswordReset.controller';
 
-const requestPasswordResetRoute = express.Router();
+const requestPasswordResetRouter = express.Router();
 
-requestPasswordResetRoute.post("/request-password-reset", requestPasswordResetController);
+requestPasswordResetRouter.post("/request-password-reset", requestPasswordResetController);
 
-export default requestPasswordResetRoute;
+export default requestPasswordResetRouter;

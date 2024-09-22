@@ -1,6 +1,7 @@
 import { IsDate, IsEmail, Max, Min } from "class-validator";
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany, CreateDateColumn } from "typeorm";
 import { Duty } from "./Duty.entity";
+import { DutyLog } from "./DutyLog.entity";
 
 export enum UserType {
     ADMIN = "admin",
@@ -10,6 +11,7 @@ export enum UserType {
 
 @Entity({ name: "userInfo" })
 export class UserInfo {
+    [x: string]: any;
     @PrimaryGeneratedColumn()
     user_id: number;
 
@@ -37,4 +39,7 @@ export class UserInfo {
 
     @OneToMany(() => Duty, (duty) => duty.userInfo)
     duties: Duty[];
+    
+    @OneToMany(() => DutyLog, (dutyLog) => dutyLog.userInfo)
+    dutyLogs: DutyLog[];
 }
