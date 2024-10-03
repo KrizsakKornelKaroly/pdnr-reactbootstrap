@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Container, Row, Col } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 
@@ -46,7 +46,7 @@ const ProtectedPage = () => {
       <Row className="justify-content-md-center mt-5">
         <Col md={6}>
           <h2>Welcome, {user.username || user.email}!</h2>
-          <p>This is a protected page. You can only see this if you're authenticated.</p>
+          <p>This is a protected page. You can only see this if you&apos;re authenticated.</p>
         </Col>
       </Row>
     </Container>
