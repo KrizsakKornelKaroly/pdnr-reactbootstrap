@@ -5,7 +5,7 @@ export const validatePassword = (password: string): boolean => {
   const hasLowercase = /[a-z]/.test(password);
   const hasUppercase = /[A-Z]/.test(password);
   const hasNumber = /[0-9]/.test(password);
-  const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+  const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>_]/.test(password);
 
   return password.length >= minLength && hasLowercase && hasUppercase && hasNumber && hasSpecialChar;
 };
@@ -14,7 +14,7 @@ export const sanitizeInput = (input: string): string => input.replace(/['"]/g, '
 
 export const encryptPassword = async (password: string): Promise<string> => {
   if (!validatePassword(password)) {
-    throw new Error('Password does not meet complexity requirements.');
+    throw new Error('A jelszó nem felel meg a követelményeknek (Kis és nagybetű, Min. 8 karakter, Speciális karakter, Szám).');
   }
 
   const sanitizedPassword = sanitizeInput(password);

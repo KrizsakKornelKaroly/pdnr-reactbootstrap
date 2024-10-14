@@ -5,7 +5,7 @@ import { UserInfo } from "../entity/UserInfo.entity";
 import { startDutyTimer } from "../services/duty.service";
 import { findOrCreateDuty } from "../utils/findOrCreateDuty";
 
-const AUTO_END_DURATION_MS = 4 * 60 * 60 * 1000; // 1 minute for testing, adjust as needed
+const AUTO_END_DURATION_MS = 1 * 60 * 1000; // 1 minute for testing, adjust as needed
 
 export const startDutyController = async (req: Request, res: Response): Promise<Response> => {
   try {

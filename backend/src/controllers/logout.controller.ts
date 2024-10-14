@@ -5,8 +5,8 @@ export const logoutController = (req: Request, res: Response) => {
   req.session.destroy((err) => {
     if (err) {
       console.error('Error destroying session:', err);
-      return res.status(500).json({ error: 'Failed to log out' });
+      return res.status(500).json({ error: 'Sikertelen Kijelentkezés' });
     }
-    res.status(200).json({ message: 'Logged out successfully' });
+    res.status(200).json({ message: 'Sikeres kijelentkezés' });
   });
 };

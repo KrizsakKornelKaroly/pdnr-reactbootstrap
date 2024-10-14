@@ -28,11 +28,11 @@ export const registrationController = async (req: Request, res: Response) => {
     console.log("All validation functions were passed.");
 
     
-    res.status(200).send("Registration successful");
+    res.status(200).send("Sikeres Regisztráció");
   } catch (error) {
    return res
       .status(400)
-      .send("Registration validation failed: " + error.message);
+      .send("Sikertelen regisztráció: " + error.message);
       
   }
 };

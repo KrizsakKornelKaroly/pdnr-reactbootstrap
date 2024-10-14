@@ -19,9 +19,9 @@ export const validateOtpCode = async (
       otpRecord.isActive = false;
       await AppDataSource.manager.save(otpRecord);
     } else {
-      throw new Error("Invalid or inactive OTP code");
+      throw new Error("Hibás vagy inaktív OTP kód");
     }
   } catch (error) {
-    throw new Error("Error validating OTP code");
+    throw new Error("Hibatörtént a(z) OTP kód hitelesítése során");
   }
 };
