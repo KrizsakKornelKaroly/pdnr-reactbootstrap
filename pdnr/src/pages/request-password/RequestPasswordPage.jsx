@@ -1,6 +1,6 @@
 import {useState} from 'react';
 import { Container, Form, Button, Alert, Card } from 'react-bootstrap';
-import axios from 'axios';
+import { requestPassword } from '../../api/api';
 
 const RequestPasswordPage = () => {
 
@@ -12,14 +12,13 @@ const RequestPasswordPage = () => {
   e.preventDefault();
 
   try {
-    await axios.post('http://localhost:3000/v1/request-password-reset', {
-     userEmail,
-   });
-   setMessage('Jelszóemlékeztető elküldve! (Spam mappát is nézze meg)');
+   const response = await requestPassword(userEmail);
+   setMessage(response);
+   console.log(response)
    setVariant('success');
 
  } catch (error) {
-   setMessage(error.response?.data || 'Something went wrong!');
+   setMessage(error);
    setVariant('danger');
  }
  };

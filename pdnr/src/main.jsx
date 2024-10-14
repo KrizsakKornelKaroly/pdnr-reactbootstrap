@@ -12,6 +12,7 @@ import LoginPage from './pages/login/LoginPage.jsx';
 import ProtectedPage from './pages/ProtectedPage.jsx';
 import RequestPasswordPage from './pages/request-password/RequestPasswordPage.jsx';
 import ResetPasswordPage from './pages/reset-password/ResetPasswordPage.jsx';
+import DutyPage from './pages/duty/DutyPage.jsx';
 
 const router = createBrowserRouter([
   {
@@ -34,6 +35,10 @@ const router = createBrowserRouter([
   {
     path: "/request-password",
     element: <RequestPasswordPage />
+  },
+  {
+    path: "/duty",
+    element: <DutyPage />
   }
 ]);
 
