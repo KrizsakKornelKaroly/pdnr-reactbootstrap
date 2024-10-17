@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Button, Alert, Container, Row, Col } from 'react-bootstrap';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Button, Alert, Container, Row, Col, Card } from 'react-bootstrap';
 import { AlertCircle, CheckCircle } from 'lucide-react';
+import { fetchLastEndedDuty } from '../../api/dutyApi'; // Adjust the path as needed
 
 const DutyPage = () => {
   const [isOnDuty, setIsOnDuty] = useState(false);
@@ -8,10 +9,28 @@ const DutyPage = () => {
   const [error, setError] = useState(null);
   const [lastActionTime, setLastActionTime] = useState(0);
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [lastEndedDutyDate, setLastEndedDutyDate] = useState(null);
+  const [totalDutyTime, setTotalDutyTime] = useState(0);
+  const [lastDutyDuration, setLastDutyDuration] = useState(0);
   const requestRef = useRef();
 
   const RATE_LIMIT_DELAY = 5000; // 5 seconds between actions
   const AUTO_STOP_DURATION = 4 * 60 * 60 * 1000; // 4 hours in milliseconds
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const { lastEndedDutyDate, totalDutyTime, lastDutyDuration } = await fetchLastEndedDuty();
+        setLastEndedDutyDate(lastEndedDutyDate);
+        setTotalDutyTime(totalDutyTime);
+        setLastDutyDuration(lastDutyDuration);
+      } catch (e) {
+        setError(e.message);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const handleAction = useCallback(async (action) => {
     const now = Date.now();
@@ -41,6 +60,10 @@ const DutyPage = () => {
       } else {
         setIsOnDuty(false);
         setDutyStartTime(null);
+        const { lastEndedDutyDate, totalDutyTime, lastDutyDuration } = await fetchLastEndedDuty(); // Fetch the last ended duty date after stopping
+        setLastEndedDutyDate(lastEndedDutyDate);
+        setTotalDutyTime(totalDutyTime);
+        setLastDutyDuration(lastDutyDuration);
       }
     } catch (e) {
       setError(`Nem sikerült ${action} szolgálat: ${e.message}`);
@@ -103,6 +126,18 @@ const DutyPage = () => {
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
+  const formatDate = (date) => {
+    if (!date) return 'N/A';
+    return date.toLocaleDateString('hu-HU', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+  };
+
   return (
     <Container className="p-4">
       <h2 className="mb-4">Szolgálat Vezérlés</h2>
@@ -145,6 +180,32 @@ const DutyPage = () => {
           </Col>
         </Row>
       )}
+      <Row>
+        <Col md={4}>
+          <Card className="mb-3">
+            <Card.Body>
+              <Card.Title>Utolsó befejezett szolgálat</Card.Title>
+              <Card.Text>{formatDate(lastEndedDutyDate)}</Card.Text>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col md={4}>
+          <Card className="mb-3">
+            <Card.Body>
+              <Card.Title>Összes szolgálati idő</Card.Title>
+              <Card.Text>{formatTime(totalDutyTime * 1000)}</Card.Text>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col md={4}>
+          <Card className="mb-3">
+            <Card.Body>
+              <Card.Title>Utolsó szolgálati időtartam</Card.Title>
+              <Card.Text>{formatTime(lastDutyDuration * 1000)}</Card.Text>
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
     </Container>
   );
 };

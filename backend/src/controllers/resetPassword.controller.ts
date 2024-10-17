@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import client from "../utils/redis";
+import client from "../utils/redisClient";
 import bcrypt from 'bcrypt';
 import { updateUserPassword } from "../services/updateUserPassword.service";
 import { AppDataSource } from "../data-source";

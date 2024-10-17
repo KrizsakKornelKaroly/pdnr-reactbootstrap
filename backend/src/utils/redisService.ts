@@ -1,4 +1,4 @@
-import client from './redis';  // Import the Redis client
+import client from './redisClient';  // Import the Redis client
 import { generateResetToken } from './createToken';
 
 export const storeResetToken = async (userEmail: string): Promise<string> => {
@@ -6,7 +6,7 @@ export const storeResetToken = async (userEmail: string): Promise<string> => {
   const expiration = 900; // 15 minutes in seconds
 
   // Store token in Redis
-  await client.setex(`password_reset:${resetToken}`, expiration, userEmail);
+  await client.setEx(`password_reset:${resetToken}`, expiration, userEmail);
 
   return resetToken;
 };

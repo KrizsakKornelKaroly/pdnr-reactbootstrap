@@ -15,7 +15,7 @@ const LoginForm = () => {
     try {
       setError(null); // Clear previous errors
       await loginUser(email, password); // Call login API
-      navigate('/test'); // Redirect on success
+      navigate('/duty'); // Redirect on success
     } catch (err) {
       setError( err?.message || 'Login failed!'); // Capture error
       console.error('Login failed:', err);

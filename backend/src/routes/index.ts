@@ -10,6 +10,7 @@ import startDutyRoute from './startDuty.route';
 import resetPasswordRouter from './resetPassword.route';
 import requestPasswordResetRouter from './requestResetPassword.route';
 import stopDutyRoute from './stopDuty.route';
+import { getLastEndedDuty } from '../controllers/getLastEndedDuty.controller';
 
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -34,6 +35,7 @@ router.use(authLimiter, resetPasswordRouter)
 router.use(authLimiter, requestPasswordResetRouter)
 router.use(startDutyRoute);
 router.use(stopDutyRoute);
+router.use(getLastEndedDuty);
 
 
 export default router;

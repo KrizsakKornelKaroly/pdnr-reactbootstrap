@@ -1,6 +1,6 @@
 import {useState} from 'react';
 import { Container, Form, Button, Alert, Card } from 'react-bootstrap';
-import { requestPassword } from '../../api/api';
+import { requestPassword } from '../../api/dutyApi';
 
 const RequestPasswordPage = () => {
 

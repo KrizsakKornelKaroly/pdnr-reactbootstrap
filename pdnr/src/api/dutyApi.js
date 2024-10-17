@@ -83,3 +83,26 @@ export const stopDuty = async () => {
   const data = await response.json(); // Get the response data
   return data.message; // Return the success message
 };
+
+export const fetchLastEndedDuty = async () => {
+  try {
+    const response = await fetch('http://localhost:3000/v1/lastEndedDuty', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      credentials: 'include' // Include cookies in the request
+    });
+
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+    const data = await response.json();
+    return {
+      lastEndedDutyDate: new Date(data.lastEndedDutyDate),
+      totalDutyTime: data.totalDutyTime,
+      lastDutyDuration: data.lastDutyDuration
+    };
+  } catch (e) {
+    throw new Error(`Nem sikerült lekérni az utolsó befejezett szolgálat dátumát: ${e.message}`);
+  }
+};

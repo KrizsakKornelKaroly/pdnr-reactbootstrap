@@ -3,7 +3,7 @@ import { AppDataSource } from "../data-source";
 import { UserInfo } from "../entity/UserInfo.entity";
 import { Duty } from "../entity/Duty.entity";
 import { DutyLog } from "../entity/DutyLog.entity";
-import redis from "../utils/redis";
+import redis from "../utils/redisClient";
 
 // In-memory duty timers
 const dutyTimers: { [key: number]: NodeJS.Timeout } = {};

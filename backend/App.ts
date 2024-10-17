@@ -6,7 +6,7 @@ import { UserInfo } from "./src/entity/UserInfo.entity";
 import router from "./src/routes";
 import "dotenv/config";
 import cors from "cors";
-import redisClient from "./src/utils/redis";
+import redisClient from "./src/utils/redisClient";
 import { loadTimersFromRedis } from "./src/services/duty.service";
 
 AppDataSource.initialize()
