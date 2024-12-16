@@ -1,58 +1,74 @@
-import { useState } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { Container, Form, Button, Alert, Card, InputGroup } from 'react-bootstrap';
-import { Eye, EyeSlash } from 'react-bootstrap-icons'; // Bootstrap icons
+import { useState } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import axios from "axios";
+import {
+  Container,
+  Form,
+  Button,
+  Alert,
+  Card,
+  InputGroup,
+} from "react-bootstrap";
+import { Eye, EyeSlash } from "react-bootstrap-icons"; // Bootstrap icons
+import dotenv from "dotenv";
+import process from "process";
 
 const ResetPasswordPage = () => {
   const [searchParams] = useSearchParams();
-  const token = searchParams.get('token');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const token = searchParams.get("token");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false); // To toggle password visibility
   const [showConfirmPassword, setShowConfirmPassword] = useState(false); // To toggle confirm password visibility
-  const [message, setMessage] = useState('');
-  const [variant, setVariant] = useState('danger'); // For alert styling
+  const [message, setMessage] = useState("");
+  const [variant, setVariant] = useState("danger"); // For alert styling
   const navigate = useNavigate(); // useNavigate hook for redirection
 
   const handlePasswordReset = async (e) => {
     e.preventDefault();
 
     if (newPassword !== confirmPassword) {
-      setMessage('Passwords do not match!');
-      setVariant('danger');
+      setMessage("Passwords do not match!");
+      setVariant("danger");
       return;
     }
 
+    dotenv.config();
+
+    const API_BASE_URL = process.env.API_BASE_URL;
+
     try {
-      await axios.post('http://localhost:3000/v1/reset-password', {
-        newPassword,
-      }, {
-        params: { token }
-      });
-      setMessage('Sikeres jelszó változtatás!');
-      setVariant('success');
-      
+      await axios.post(
+        `${API_BASE_URL}/reset-password`,
+        {
+          newPassword,
+        },
+        {
+          params: { token },
+        }
+      );
+      setMessage("Sikeres jelszó változtatás!");
+      setVariant("success");
+
       setTimeout(() => {
-        navigate('/belepes');
+        navigate("/belepes");
       }, 2000);
-      
     } catch (error) {
-      setMessage(error.response?.data || 'Valami hiba történt!');
-      setVariant('danger');
+      setMessage(error.response?.data || "Valami hiba történt!");
+      setVariant("danger");
     }
   };
 
   return (
     <Container className="d-flex justify-content-center align-items-center vh-100">
-      <Card style={{ width: '100%', maxWidth: '400px' }} className="p-4 shadow">
+      <Card style={{ width: "100%", maxWidth: "400px" }} className="p-4 shadow">
         <h2 className="text-center mb-4">Állítsa vissza jelszavát</h2>
         <Form onSubmit={handlePasswordReset}>
           <Form.Group controlId="formNewPassword" className="mb-3">
             <Form.Label>Új jelszó</Form.Label>
             <InputGroup>
               <Form.Control
-                type={showPassword ? 'text' : 'password'}
+                type={showPassword ? "text" : "password"}
                 placeholder="Írjon be egy új jelszót"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
@@ -60,7 +76,7 @@ const ResetPasswordPage = () => {
               />
               <InputGroup.Text
                 onClick={() => setShowPassword(!showPassword)}
-                style={{ cursor: 'pointer' }}
+                style={{ cursor: "pointer" }}
               >
                 {showPassword ? <EyeSlash /> : <Eye />}
               </InputGroup.Text>
@@ -71,7 +87,7 @@ const ResetPasswordPage = () => {
             <Form.Label>Jelszó megerősítése</Form.Label>
             <InputGroup>
               <Form.Control
-                type={showConfirmPassword ? 'text' : 'password'}
+                type={showConfirmPassword ? "text" : "password"}
                 placeholder="Erősítse meg az új jelszót"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
@@ -79,7 +95,7 @@ const ResetPasswordPage = () => {
               />
               <InputGroup.Text
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                style={{ cursor: 'pointer' }}
+                style={{ cursor: "pointer" }}
               >
                 {showConfirmPassword ? <EyeSlash /> : <Eye />}
               </InputGroup.Text>

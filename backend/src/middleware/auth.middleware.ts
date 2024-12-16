@@ -4,10 +4,10 @@ export const checkAuth = (req: Request, res: Response, next: NextFunction) => {
   console.log('Session data:', req.session); 
   if (req.session && req.session.user_id) {
     console.log('User is authenticated: ', req.session.user_id);
-    next();
+    return next();
   } else {
     console.log('User is not authenticated');
-    res.status(401).json({ isAuth: false });
+    res.status(401).json({ isAuth: false, success: false, message: 'Unauthorized' });
   }
 };
 

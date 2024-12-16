@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import e, { Request, Response } from "express";
 
 export const checkAuthController = (req: Request, res: Response) => {
   res.status(200).json({
@@ -7,6 +7,8 @@ export const checkAuthController = (req: Request, res: Response) => {
       icName: req.session.ic_name,
       userId: req.session.user_id,
       userLevel: req.session.userLevel,
+      email: req.session.email,
+      dc_name: req.session.dc_name,
     },
   });
 };

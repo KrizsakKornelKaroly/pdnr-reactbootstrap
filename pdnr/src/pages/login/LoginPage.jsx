@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Form, Button, Container, Card, Alert } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
-import { loginUser } from '../../api/api'; // Assuming loginUser is defined in your API
+import { loginUser } from '../../api/dutyApi';
 
 const LoginForm = () => {
   const [email, setEmail] = useState('');

@@ -1,44 +1,25 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useContext } from 'react';
 import { Container, Row, Col } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
-
-const API_BASE_URL = 'http://localhost:3000/v1'; // Adjust as needed
+import { AuthContext } from '../context/AuthContext'; // Import AuthContext
 
 const ProtectedPage = () => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { isAuthState, user, loading } = useContext(AuthContext); // Get auth context data
   const navigate = useNavigate();
 
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/check-auth`, {
-          credentials: 'include'
-        });
-        if (response.ok) {
-          const userData = await response.json();
-          setUser(userData);
-        } else {
-          // If not authenticated, redirect to login
-          navigate('/belepes');
-        }
-      } catch (error) {
-        console.error('Auth check failed:', error);
-        navigate('/belepes');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    checkAuth();
-  }, [navigate]);
+    if (!isAuthState) {
+      // If the user is not authenticated, redirect to login
+      navigate('/belepes');
+    }
+  }, [isAuthState, navigate]);
 
   if (loading) {
     return <div>Loading...</div>;
   }
 
-  if (!user) {
-    return null; // This should not be reached due to the redirect, but just in case
+  if (!isAuthState) {
+    return null; // Prevent rendering of protected page until user is authenticated
   }
 
   return (

@@ -1,12 +1,9 @@
-import * as express from 'express';
+import { Router } from 'express';
 import { checkAuth } from '../middleware/auth.middleware';
 import { checkAuthController } from '../controllers/checkAuth.controller';
 
+const protectedRoute = Router();
 
-const protectedRoute = express.Router();
-
-protectedRoute.get('/check-auth', checkAuth, (req, res, next) => {
-  next();
-}, checkAuthController);
+protectedRoute.get('/check-auth', checkAuth, checkAuthController);
 
 export default protectedRoute;

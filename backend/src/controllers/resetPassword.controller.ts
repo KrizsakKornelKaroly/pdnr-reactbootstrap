@@ -37,7 +37,7 @@ export const resetPasswordController = async (req: Request, res: Response) => {
         const userRepository = AppDataSource.getRepository(UserInfo);
         const user = await userRepository.findOneBy({ email: userEmail });
 
-        if (!user) {
+        if (!user?.user_id) {
             return res.status(400).send('A felhasználó nem található.');
         }
 

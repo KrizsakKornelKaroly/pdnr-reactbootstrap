@@ -8,6 +8,8 @@ declare module 'express-session' {
         user_id: number;
         userLevel: string;
         ic_name: string;
+        dc_name: string;
+        email: string;
     }
 }
 
@@ -34,7 +36,9 @@ export const loginController = async (req: Request, res: Response) => {
 
         req.session.user_id = user.user_id;
         req.session.userLevel = user.userLevel;
-        req.session.ic_name = user.ic_name; // Optional: store userLevel
+        req.session.ic_name = user.ic_name;
+        req.session.dc_name = user.dc_name;
+        req.session.email = user.email;
         console.log(req.session);
 
         // Respond with JSON indicating successful login

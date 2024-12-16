@@ -13,7 +13,13 @@ export async function findOrCreateDuty(
     relations: ["userInfo"],
   });
 
-  if (!duty) {
+  // Load duty with relations
+const dutyLog = await dutyRepository.findOne({
+  where: { duty_id: 1 },
+  relations: ['dutyLogs']
+});
+
+  {
     // Create a new duty if none exists
     const userInfo = await userInfoRepository.findOneOrFail({ where: { user_id: userId } });
     duty = dutyRepository.create({

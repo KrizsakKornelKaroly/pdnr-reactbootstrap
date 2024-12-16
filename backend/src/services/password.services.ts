@@ -24,7 +24,7 @@ export const encryptPassword = async (password: string): Promise<string> => {
     console.log('hashed pw: ' + hash);
     return hash;
   } catch (err) {
-    throw new Error(err);
+    throw new Error(err instanceof Error ? err.message : String(err));
   }
 };
 

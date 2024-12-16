@@ -8,13 +8,20 @@ body{
   background-image: linear-gradient(90deg, rgb(0,0,90) 0%, rgb(28,181,224)100%);
 
 }
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 1rem;
-  text-align: center;
+.kartyak {
+  display: flex;
+  align-items: stretch;
 }
-.kepek{
-  width: 60% !important;
-  margin: 0 auto;
+
+.kartya {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.kartya-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }

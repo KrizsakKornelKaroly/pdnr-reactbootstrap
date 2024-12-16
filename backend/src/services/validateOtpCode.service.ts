@@ -1,5 +1,5 @@
 import { AppDataSource } from "../data-source";
-import { OTP_Code } from "../entity/OTP_Code.entity";
+import { OTP_Code } from "../entity/OtpCodes.entity";
 import { Response } from "express";
 
 export const validateOtpCode = async (
@@ -9,9 +9,9 @@ export const validateOtpCode = async (
   try {
     const otpRepository = AppDataSource.getRepository(OTP_Code);
     const otpRecord = await otpRepository
-      .createQueryBuilder("otp_code")
-      .where("otp_code.code = :code", { code: otpCode.toString() })
-      .andWhere("otp_code.isActive = true")
+      .createQueryBuilder("otpCodes")
+      .where("otpCodes.code = :code", { code: otpCode.toString() })
+      .andWhere("otpCodes.isActive = true")
       .cache(true)
       .getOne();
 

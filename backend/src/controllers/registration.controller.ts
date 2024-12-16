@@ -9,30 +9,29 @@ import { validateUserCredentials } from "../services/validateUserCredentials.ser
 import { saveUserRegistration } from "../db/saveUserRegistration.db";
 
 export const registrationController = async (req: Request, res: Response) => {
-  const { ic_name, steam_name, dc_name, email, password, otpCode }: RegisterUserData =
-    req.body;
+  const { ic_name, steam_name, dc_name, email, password, otpCode }: RegisterUserData = req.body;
   const userCreds = { ic_name, steam_name, dc_name, email, password, otpCode };
 
   try {
-    await validateUserCredentials( 
+    await validateUserCredentials(
       userCreds.ic_name,
       userCreds.steam_name,
       userCreds.dc_name,
       userCreds.email,
     );
-    await validateOtpCode(userCreds.otpCode, res);
     const hashedPassword = await encryptPassword(password);
     await comparePassword(password, hashedPassword);
     await saveUserRegistration(userCreds.ic_name, userCreds.steam_name, userCreds.dc_name, userCreds.email, hashedPassword);
+    await validateOtpCode(userCreds.otpCode, res);
     console.log("Credentials are valid. Registration process can continue.");
     console.log("All validation functions were passed.");
 
-    
-    res.status(200).send("Sikeres Regisztráció");
+    res.status(200).json({ message: "Registration successful" });
   } catch (error) {
-   return res
-      .status(400)
-      .send("Sikertelen regisztráció: " + error.message);
-      
+    if (error instanceof Error) {
+      res.status(400).json({ error: error.message });
+    } else {
+      res.status(400).json({ error: "An unknown error occurred" });
+    }
   }
 };

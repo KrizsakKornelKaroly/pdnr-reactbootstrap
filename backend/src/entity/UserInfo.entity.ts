@@ -1,4 +1,4 @@
-import { IsDate, IsEmail, Max, Min } from "class-validator";
+import { IsEmail } from "class-validator";
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany, CreateDateColumn } from "typeorm";
 import { Duty } from "./Duty.entity";
 import { DutyLog } from "./DutyLog.entity";
@@ -6,14 +6,11 @@ import { DutyLog } from "./DutyLog.entity";
 export enum UserType {
     ADMIN = "admin",
     USER = "user",
-    LEADER= "leader",
-}
-
-@Entity({ name: "userInfo" })
+    LEADER = "leader",
+}@Entity({ name: "userInfo" })
 export class UserInfo {
-    [x: string]: any;
     @PrimaryGeneratedColumn()
-    user_id: number;
+    user_id!: number;
 
     @Column({ type: "varchar", length: 50 })
     ic_name: string;
@@ -25,21 +22,22 @@ export class UserInfo {
     dc_name: string;
 
     @Column({ type: "varchar", length: 45 })
-    @IsEmail()
+    @IsEmail()  // Ensures that email is valid
     email: string;
 
-    @Column({ type: "varchar"})
+    @Column({ type: "varchar" })
     password: string;
 
     @Column({ type: "enum", enum: UserType, default: UserType.USER })
     userLevel: UserType;
 
-    @CreateDateColumn()
+    @CreateDateColumn()  // Automatically sets the join date to current date
     joinDate: Date;
 
     @OneToMany(() => Duty, (duty) => duty.userInfo)
-    duties: Duty[];
-    
+    duties!: Duty[];
+
     @OneToMany(() => DutyLog, (dutyLog) => dutyLog.userInfo)
-    dutyLogs: DutyLog[];
+    dutyLogs!: DutyLog[];
 }
+

@@ -23,6 +23,6 @@ export const validateUserCredentials = async (ic_name: string, steam_name: strin
 
   } catch (error) {
     console.error('Belső szerverhiba történt a felhasználói adatok ellenőrzése során');
-    throw new Error('Belső szerverhiba történt a felhasználói adatok ellenőrzése során');
+    throw error;
   }
 };

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Button, Alert, Container, Row, Col, Card } from 'react-bootstrap';
 import { AlertCircle, CheckCircle } from 'lucide-react';
-import { fetchLastEndedDuty } from '../../api/dutyApi'; // Adjust the path as needed
+import { fetchLastEndedDuty, API_BASE_URL } from '../../api/dutyApi';
 
 const DutyPage = () => {
   const [isOnDuty, setIsOnDuty] = useState(false);
@@ -43,7 +43,7 @@ const DutyPage = () => {
     setError(null);
 
     try {
-      const response = await fetch(`http://localhost:3000/v1/${action}Duty`, {
+      const response = await fetch(`${API_BASE_URL}/${action}Duty`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -139,6 +139,9 @@ const DutyPage = () => {
   };
 
   return (
+    <>
+  {/*<CostumeNavbar />*/}
+    
     <Container className="p-4">
       <h2 className="mb-4">Szolgálat Vezérlés</h2>
       <Row className="mb-3">
@@ -207,6 +210,7 @@ const DutyPage = () => {
         </Col>
       </Row>
     </Container>
+    </>
   );
 };
 
