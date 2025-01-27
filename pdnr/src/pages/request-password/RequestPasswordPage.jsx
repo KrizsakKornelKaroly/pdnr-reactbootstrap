@@ -1,57 +1,60 @@
-import {useState} from 'react';
-import { Container, Form, Button, Alert, Card } from 'react-bootstrap';
+import { useState } from 'react';
+import { Form, Button, Alert, Card } from 'react-bootstrap';
 import { requestPassword } from '../../api/dutyApi';
+import Layout from '../../components/Layout';
 
 const RequestPasswordPage = () => {
-
-  const [userEmail, setEmail] = useState('')
+  const [userEmail, setEmail] = useState('');
   const [message, setMessage] = useState('');
-  const [variant, setVariant] = useState('danger'); // For alert styling
+  const [variant, setVariant] = useState('danger');
 
- const handleRequestPassword = async (e) => {
-  e.preventDefault();
+  const handleRequestPassword = async (e) => {
+    e.preventDefault();
 
-  try {
-   const response = await requestPassword(userEmail);
-   setMessage(response);
-   console.log(response)
-   setVariant('success');
-
- } catch (error) {
-   setMessage(error);
-   setVariant('danger');
- }
- };
+    try {
+      const response = await requestPassword(userEmail);
+      setMessage(response);
+      setVariant('success');
+    } catch (error) {
+      setMessage(error.message);
+      setVariant('danger');
+    }
+  };
 
   return (
-    <Container className="d-flex justify-content-center align-items-center vh-100">
-    <Card style={{ width: '100%', maxWidth: '400px' }} className="p-4 shadow">
-      <h2 className="text-center mb-4">Kérjen jelszóemlékeztetőt</h2>
-      <Form onSubmit={handleRequestPassword}>
-        <Form.Group controlId="formNewPassword" className="mb-3">
-          <Form.Label>Email cím</Form.Label>
-          <Form.Control
-            type="email"
-            placeholder="Irja be email címét"
-            value={userEmail}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </Form.Group>
+    <Layout>
+      <Card className="border-0 shadow-lg" style={{ maxWidth: '400px', margin: '0 auto' }}>
+        <Card.Body className="p-5">
+          <div className="text-center mb-4">
+            <h2 className="fw-bold mb-0">Jelszó-emlékeztető</h2>
+            <p className="text-muted">Írja be az email címét a jelszó-emlékeztető küldéséhez</p>
+          </div>
+          <Form onSubmit={handleRequestPassword}>
+            <Form.Group controlId="formEmail" className="mb-4">
+              <Form.Label>Email</Form.Label>
+              <Form.Control
+                type="email"
+                placeholder="Email cím"
+                value={userEmail}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </Form.Group>
+            <Button variant="primary" type="submit" className="w-100 mb-3" style={{
+            }}>
+              Jelszó-emlékeztető Küldése
+            </Button>
+          </Form>
+          {message && (
+            <Alert variant={variant} className="mt-3">
+              {message}
+            </Alert>
+          )}
+        </Card.Body>
+      </Card>
+    </Layout>
+  );
+};
 
-        <Button variant="primary" type="submit" className="w-100">
-          Küldés
-        </Button>
-      </Form>
+export default RequestPasswordPage;
 
-      {message && (
-        <Alert variant={variant} className="mt-3">
-          {message}
-        </Alert>
-      )}
-    </Card>
-  </Container>
-  )
-}
-
-export default RequestPasswordPage

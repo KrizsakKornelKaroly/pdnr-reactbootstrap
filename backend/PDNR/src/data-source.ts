@@ -11,17 +11,22 @@ export const AppDataSource = new DataSource({
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
     synchronize: false,
-    logging: process.env.NODE_ENV === 'development',
+    logging:  ['error'],
     entities: [__dirname + "/../**/*.entity.{js,ts}"],
     // Optimized pool settings
     poolSize: 20,
     connectTimeout: 10000,
+    cache: {
+      duration: 60000 // 1 minute cache
+    },
     extra: {
       connectionLimit: 20,
+      queueLimit: 0,
+      enableKeepAlive: true,
+      keepAliveInitialDelay: 0,
       maxIdle: 10,
       idleTimeout: 60000,
       waitForConnections: true,
-      queueLimit: 0
     },
     // SSL disabled since same machine communication
     ssl: false,

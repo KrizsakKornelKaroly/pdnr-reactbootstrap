@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Button, Alert, Container, Row, Col, Card } from 'react-bootstrap';
 import { AlertCircle, CheckCircle } from 'lucide-react';
-import { fetchLastEndedDuty, API_BASE_URL } from '../../api/dutyApi';
+import { fetchLastEndedDuty, startDuty, stopDuty } from '../../api/dutyApi';
+import Layout from '../../components/Layout';
 
 const DutyPage = () => {
   const [isOnDuty, setIsOnDuty] = useState(false);
@@ -13,23 +14,36 @@ const DutyPage = () => {
   const [totalDutyTime, setTotalDutyTime] = useState(0);
   const [lastDutyDuration, setLastDutyDuration] = useState(0);
   const requestRef = useRef();
+  const afkTimeoutRef = useRef();
 
   const RATE_LIMIT_DELAY = 5000; // 5 seconds between actions
-  const AUTO_STOP_DURATION = 4 * 60 * 60 * 1000; // 4 hours in milliseconds
+  const AFK_TIMEOUT = 4 * 60 * 60 * 1000; // 4 hours (for testing)
 
+  // Function to handle duty end (both manual and automatic)
+  const handleDutyEnd = useCallback(async () => {
+    try {
+      const data = await stopDuty();
+      setIsOnDuty(false);
+      setDutyStartTime(null);
+      setLastEndedDutyDate(new Date());
+      setTotalDutyTime(data.totalDutyTime || 0);
+      setLastDutyDuration(data.lastDutyDuration || 0);
+      
+      if (requestRef.current) {
+        cancelAnimationFrame(requestRef.current);
+      }
+    } catch (e) {
+      setError(e.message);
+    }
+  }, []);
+
+  // Clear AFK timeout on unmount
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const { lastEndedDutyDate, totalDutyTime, lastDutyDuration } = await fetchLastEndedDuty();
-        setLastEndedDutyDate(lastEndedDutyDate);
-        setTotalDutyTime(totalDutyTime);
-        setLastDutyDuration(lastDutyDuration);
-      } catch (e) {
-        setError(e.message);
+    return () => {
+      if (afkTimeoutRef.current) {
+        clearTimeout(afkTimeoutRef.current);
       }
     };
-
-    fetchData();
   }, []);
 
   const handleAction = useCallback(async (action) => {
@@ -43,71 +57,35 @@ const DutyPage = () => {
     setError(null);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/${action}Duty`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include' // Include cookies in the request
-      });
-
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-      
       if (action === 'start') {
-        setIsOnDuty(true);
-        setDutyStartTime(now);
-        setElapsedTime(0); // Az eltelt idő visszaállítása
+        const response = await startDuty();
+        if (response.success) {
+          setIsOnDuty(true);
+          setDutyStartTime(now);
+          setElapsedTime(0);
+
+          // Set up AFK detection
+          afkTimeoutRef.current = setTimeout(() => {
+            setError('A szolgálat automatikusan leállt inaktivitás miatt.');
+            setIsOnDuty(false);
+          }, AFK_TIMEOUT);
+        }
       } else {
-        setIsOnDuty(false);
-        setDutyStartTime(null);
-        const { lastEndedDutyDate, totalDutyTime, lastDutyDuration } = await fetchLastEndedDuty(); // Fetch the last ended duty date after stopping
-        setLastEndedDutyDate(lastEndedDutyDate);
-        setTotalDutyTime(totalDutyTime);
-        setLastDutyDuration(lastDutyDuration);
+        await handleDutyEnd();
+        if (afkTimeoutRef.current) {
+          clearTimeout(afkTimeoutRef.current);
+        }
       }
     } catch (e) {
-      setError(`Nem sikerült ${action} szolgálat: ${e.message}`);
+      setError(`Nem sikerült ${action === 'start' ? 'elindítani' : 'leállítani'} a szolgálatot: ${e.message}`);
     }
-  }, [lastActionTime]);
+  }, [lastActionTime, handleDutyEnd, AFK_TIMEOUT]);
 
-  const startDuty = () => handleAction('start');
-  const stopDuty = useCallback(() => handleAction('stop'), [handleAction]);
-
-  const saveCurrentTimeAndStopDuty = useCallback(() => {
-    if (isOnDuty) {
-      handleAction('stop');
-    }
-  }, [isOnDuty, handleAction]);
-
-  useEffect(() => {
-    let timer;
-    if (isOnDuty && dutyStartTime) {
-      timer = setTimeout(() => {
-        stopDuty();
-        setError(`A szolgálat automatikusan leállt ${AUTO_STOP_DURATION / 3600000} óra után.`);
-      }, AUTO_STOP_DURATION);
-    }
-    return () => clearTimeout(timer);
-  }, [isOnDuty, dutyStartTime, stopDuty, AUTO_STOP_DURATION]);
-
-  useEffect(() => {
-    const handleBeforeUnload = (event) => {
-      saveCurrentTimeAndStopDuty();
-      event.preventDefault();
-      event.returnValue = ''; // Required for Chrome to show the confirmation dialog
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, [saveCurrentTimeAndStopDuty]);
-
+  // Update elapsed time using server timestamp
   const updateElapsedTime = useCallback(() => {
     if (isOnDuty && dutyStartTime) {
-      setElapsedTime(Date.now() - dutyStartTime);
-      requestRef.current = requestAnimationFrame(updateElapsedTime);
+      setElapsedTime(Math.floor((Date.now() - dutyStartTime) / 1000)); // Update elapsed time in seconds
+      requestRef.current = requestAnimationFrame(updateElapsedTime); // Continue updating each frame
     }
   }, [isOnDuty, dutyStartTime]);
 
@@ -115,15 +93,22 @@ const DutyPage = () => {
     if (isOnDuty && dutyStartTime) {
       requestRef.current = requestAnimationFrame(updateElapsedTime);
     }
-    return () => cancelAnimationFrame(requestRef.current);
+    return () => {
+      if (requestRef.current) {
+        cancelAnimationFrame(requestRef.current);
+      }
+    };
   }, [isOnDuty, dutyStartTime, updateElapsedTime]);
 
-  const formatTime = (milliseconds) => {
-    const totalSeconds = Math.floor(milliseconds / 1000);
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  useEffect(() => {
+    console.log("Elapsed Time:", elapsedTime);
+  }, [elapsedTime]);
+
+  const formatTime = (seconds) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const remainingSeconds = seconds % 60;
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
   const formatDate = (date) => {
@@ -138,79 +123,127 @@ const DutyPage = () => {
     });
   };
 
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const { lastEndedDutyDate, totalDutyTime, lastDutyDuration } = await fetchLastEndedDuty();
+        setLastEndedDutyDate(new Date(lastEndedDutyDate));
+        setTotalDutyTime(totalDutyTime);
+        setLastDutyDuration(lastDutyDuration);
+      } catch (e) {
+        setError(e.message);
+      }
+    };
+    fetchData();
+  }, []);
+
+  // Add beforeunload event listener to warn the user before they leave the page
+  useEffect(() => {
+    const handleBeforeUnload = (event) => {
+      if (isOnDuty) {
+        const message = 'A szolgálat még aktív. Biztos, hogy el akarja hagyni az oldalt?';
+        event.returnValue = message; // Standard for most browsers
+        return message; // For some browsers like older versions of Chrome
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [isOnDuty]);
+
   return (
-    <>
-  {/*<CostumeNavbar />*/}
-    
-    <Container className="p-4">
-      <h2 className="mb-4">Szolgálat Vezérlés</h2>
-      <Row className="mb-3">
-        <Col>
-          <Button 
-            onClick={startDuty} 
-            disabled={isOnDuty} 
-            variant="success" 
-            className="me-2"
-          >
-            Szolgálat Indítása
-          </Button>
-          <Button 
-            onClick={stopDuty} 
-            disabled={!isOnDuty} 
-            variant="danger"
-          >
-            Szolgálat Leállítása
-          </Button>
-        </Col>
-      </Row>
-      {isOnDuty && (
-        <Row className="mb-3">
-          <Col>
-            <Alert variant="info" className="d-flex align-items-center">
-              <CheckCircle className="me-2" />
-              Jelenleg szolgálatban: {formatTime(elapsedTime)}
-            </Alert>
+    <Layout>
+      <Container className="py-5">
+        <Row className="justify-content-center mb-5">
+          <Col lg={8} className="text-center">
+            <h2 className="display-6 mb-4 fw-bold" style={{ color: '#2b95ff' }}>Szolgálat Vezérlés</h2>
+            <div className="d-flex gap-3 justify-content-center">
+              <Button 
+                onClick={() => handleAction('start')} 
+                disabled={isOnDuty} 
+                variant="primary" 
+                size="lg"
+                className="px-4 py-2"
+              >
+                <i className="bi bi-play-circle me-2"></i>
+                Szolgálat Indítása
+              </Button>
+              <Button 
+                onClick={() => handleAction('stop')} 
+                disabled={!isOnDuty} 
+                variant="danger"
+                size="lg"
+                className="px-4 py-2"
+              >
+                <i className="bi bi-stop-circle me-2"></i>
+                Szolgálat Leállítása
+              </Button>
+            </div>
           </Col>
         </Row>
-      )}
-      {error && (
-        <Row>
-          <Col>
-            <Alert variant="warning" className="d-flex align-items-center">
-              <AlertCircle className="me-2" />
-              {error}
-            </Alert>
+
+        {isOnDuty && (
+          <Row className="justify-content-center mb-4">
+            <Col lg={8}>
+              <Alert variant="info" className="d-flex align-items-center justify-content-center p-4">
+                <CheckCircle size={24} className="me-3" />
+                <span className="fs-5">Jelenleg szolgálatban: <strong>{formatTime(elapsedTime)}</strong></span>
+              </Alert>
+            </Col>
+          </Row>
+        )}
+
+        {error && (
+          <Row className="justify-content-center mb-4">
+            <Col lg={8}>
+              <Alert variant="danger" className="d-flex align-items-center justify-content-center p-4">
+                <AlertCircle size={24} className="me-3" />
+                <span className="fs-5">{error}</span>
+              </Alert>
+            </Col>
+          </Row>
+        )}
+
+        <Row className="g-4">
+          <Col lg={4}>
+            <Card className="h-100 text-center p-4">
+              <Card.Body>
+                <div className="mb-3">
+                  <i className="bi bi-clock-history fs-1 text-primary"></i>
+                </div>
+                <Card.Title className="mb-3">Utolsó befejezett szolgálat</Card.Title>
+                <Card.Text className="fs-5">{formatDate(lastEndedDutyDate)}</Card.Text>
+              </Card.Body>
+            </Card>
+          </Col>
+          <Col lg={4}>
+            <Card className="h-100 text-center p-4">
+              <Card.Body>
+                <div className="mb-3">
+                  <i className="bi bi-hourglass-split fs-1 text-primary"></i>
+                </div>
+                <Card.Title className="mb-3">Összes szolgálati idő</Card.Title>
+                <Card.Text className="fs-5">{formatTime(totalDutyTime)}</Card.Text>
+              </Card.Body>
+            </Card>
+          </Col>
+          <Col lg={4}>
+            <Card className="h-100 text-center p-4">
+              <Card.Body>
+                <div className="mb-3">
+                  <i className="bi bi-clock fs-1 text-primary"></i>
+                </div>
+                <Card.Title className="mb-3">Legutóbbi szolgálat hossza</Card.Title>
+                <Card.Text className="fs-5">{formatTime(lastDutyDuration)}</Card.Text>
+              </Card.Body>
+            </Card>
           </Col>
         </Row>
-      )}
-      <Row>
-        <Col md={4}>
-          <Card className="mb-3">
-            <Card.Body>
-              <Card.Title>Utolsó befejezett szolgálat</Card.Title>
-              <Card.Text>{formatDate(lastEndedDutyDate)}</Card.Text>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={4}>
-          <Card className="mb-3">
-            <Card.Body>
-              <Card.Title>Összes szolgálati idő</Card.Title>
-              <Card.Text>{formatTime(totalDutyTime * 1000)}</Card.Text>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={4}>
-          <Card className="mb-3">
-            <Card.Body>
-              <Card.Title>Utolsó szolgálati időtartam</Card.Title>
-              <Card.Text>{formatTime(lastDutyDuration * 1000)}</Card.Text>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
-    </Container>
-    </>
+      </Container>
+    </Layout>
   );
 };
 

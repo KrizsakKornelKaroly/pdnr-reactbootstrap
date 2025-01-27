@@ -19,10 +19,10 @@ export const registrationController = async (req: Request, res: Response) => {
       userCreds.dc_name,
       userCreds.email,
     );
+    await validateOtpCode(userCreds.otpCode, res);
     const hashedPassword = await encryptPassword(password);
     await comparePassword(password, hashedPassword);
     await saveUserRegistration(userCreds.ic_name, userCreds.steam_name, userCreds.dc_name, userCreds.email, hashedPassword);
-    await validateOtpCode(userCreds.otpCode, res);
     console.log("Credentials are valid. Registration process can continue.");
     console.log("All validation functions were passed.");
 

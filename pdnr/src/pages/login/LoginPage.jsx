@@ -1,73 +1,131 @@
-import { useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Form, Button, Container, Card, Alert } from 'react-bootstrap';
-import { Link } from 'react-router-dom';
-import { loginUser } from '../../api/dutyApi';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { useState } from 'react';
+import { Form, Button, Alert, Card } from 'react-bootstrap';
+import { useAuth } from '../../hooks/useAuth';
+import Layout from '../../components/Layout';
 
-const LoginForm = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState(null); // Fix for error handling
+const LoginPage = () => {
+  const [error, setError] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const { login, loading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const handleSubmit = useCallback(async (event) => {
-    event.preventDefault();
-    try {
-      setError(null); // Clear previous errors
-      await loginUser(email, password); // Call login API
-      navigate('/duty'); // Redirect on success
-    } catch (err) {
-      setError( err?.message || 'Login failed!'); // Capture error
-      console.error('Login failed:', err);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const email = e.target.email.value;
+    const password = e.target.password.value;
+
+    const success = await login(email, password);
+    if (success) {
+      setError(null);
+      const from = location.state?.from?.pathname || "/";
+      navigate(from, { replace: true });
     }
-  }, [email, password, navigate]);
+    else {
+      e.target.password.value = "";
+      e.target.password.focus();
+      setError("Hibás email cím vagy jelszó.");
+    }
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
 
   return (
-    <Container className="d-flex justify-content-center align-items-center vh-100">
-      <Card style={{ width: '100%', maxWidth: '400px' }} className="p-4 shadow">
-        <h2 className="text-center mb-4">Bejelentkezés</h2>
+    <Layout>
+      <div className="login-container">
+        <Card className="login-card">
+          <Card.Body className="p-4 p-md-5">
+            <div className="text-center mb-4">
+              <div className="auth-logo-wrapper mb-4">
+                <i className="bi bi-shield-lock auth-icon"></i>
+              </div>
+              <h2 className="auth-title">Bejelentkezés</h2>
+              <p className="auth-subtitle">Jelentkezzen be a fiókjába</p>
+            </div>
+            
+            <Form onSubmit={handleSubmit}>
+              <Form.Group controlId="formEmail" className="mb-3">
+                <Form.Label className="auth-label">Email cím</Form.Label>
+                <div className="input-group">
+                  <span className="input-group-text">
+                    <i className="bi bi-envelope"></i>
+                  </span>
+                  <Form.Control
+                    type="email"
+                    name="email"
+                    placeholder="Írja be az email címét"
+                    required
+                    className="auth-input"
+                  />
+                </div>
+              </Form.Group>
 
-        {/* Show an error alert if login fails */}
-        {error && (
-          <Alert variant="danger" className="text-center">
-            {error}
-          </Alert>
-        )}
+              <Form.Group controlId="formPassword" className="mb-4">
+                <Form.Label className="auth-label">Jelszó</Form.Label>
+                <div className="input-group">
+                  <span className="input-group-text">
+                    <i className="bi bi-key"></i>
+                  </span>
+                  <Form.Control
+                    type={showPassword ? "text" : "password"}
+                    name="password"
+                    placeholder="Írja be a jelszavát"
+                    required
+                    className="auth-input"
+                  />
+                  <button
+                    type="button"
+                    className="input-group-text password-toggle"
+                    onClick={togglePasswordVisibility}
+                    tabIndex="-1"
+                  >
+                    <i className={`bi bi-eye${showPassword ? '-slash' : ''}`}></i>
+                  </button>
+                </div>
+              </Form.Group>
 
-        <Form onSubmit={handleSubmit}>
-          <Form.Group controlId="formBasicEmail" className="mb-3">
-            <Form.Label>Email cím</Form.Label>
-            <Form.Control 
-              type="email" 
-              placeholder="Email" 
-              value={email} 
-              onChange={(e) => setEmail(e.target.value)} 
-              required
-            />
-          </Form.Group>
+              <Button 
+                variant="primary" 
+                type="submit" 
+                className="auth-button w-100" 
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    Bejelentkezés...
+                  </>
+                ) : (
+                  <>
+                    <i className="bi bi-box-arrow-in-right me-2"></i>
+                    Bejelentkezés
+                  </>
+                )}
+              </Button>
+            </Form>
 
-          <Form.Group controlId="formBasicPassword" className="mb-3">
-            <Form.Label>Jelszó</Form.Label>
-            <Form.Control 
-              type="password" 
-              placeholder="Jelszó" 
-              value={password} 
-              onChange={(e) => setPassword(e.target.value)} 
-              required
-            />
-          </Form.Group>
+            {error && (
+              <Alert variant="danger" className="auth-alert mt-3">
+                <i className="bi bi-exclamation-circle me-2"></i>
+                {error}
+              </Alert>
+            )}
 
-          <div className="text-end mb-3">
-            <Link to='/request-password'>Elfelejtettem a jelszavam</Link>
-          </div>
-
-          <Button variant="primary" type="submit" className="w-100">
-            Bejelentkezés
-          </Button>
-        </Form>
-      </Card>
-    </Container>
+            <div className="text-center mt-4">
+              <Link to="/request-password" className="auth-link">
+                <i className="bi bi-question-circle me-1"></i>
+                Elfelejtette a jelszavát?
+              </Link>
+            </div>
+          </Card.Body>
+        </Card>
+      </div>
+    </Layout>
   );
 };
 
-export default LoginForm;
+export default LoginPage;
+

@@ -4,173 +4,198 @@ import { UserInfo } from "../entity/UserInfo.entity";
 import { Duty } from "../entity/Duty.entity";
 import { DutyLog } from "../entity/DutyLog.entity";
 import redis from "../utils/redisClient";
-import { IsNull, Repository } from "typeorm";
 
-// Constants
-const AUTO_END_DURATION_MS = 4 * 60 * 60 * 1000; // 4 hours
+const DUTY_KEY_PREFIX = 'duty:active:';
+const AFK_TIMEOUT =  4 * 60 * 60 * 1000;
+const dutyRepository = AppDataSource.getRepository(Duty);
+const dutyLogRepository = AppDataSource.getRepository(DutyLog);
+const userRepository = AppDataSource.getRepository(UserInfo);
 
-// In-memory duty timers
-const dutyTimers: Record<number, NodeJS.Timeout> = {};
-
-// Helper function to start a duty timer
-export const startDutyTimer = async (
-    userId: number,
-    durationMs: number
-): Promise<void> => {
-    const timerKey = `dutyTimer:${userId}`;
-
-    try {
-        await redis.set(timerKey, Date.now().toString());
-        await logDutyStart(userId);
-
-        const timer = setTimeout(async () => {
-            await endDutyAutomatically(userId);
-        }, durationMs);
-
-        dutyTimers[userId] = timer;
-    } catch (error) {
-        console.error(`Failed to start duty timer for user ${userId}:`, error);
-    }
-};
-
-// Function to end the duty automatically when the timer expires
-const endDutyAutomatically = async (userId: number): Promise<void> => {
-    const dutyRepository = AppDataSource.getRepository(Duty);
-    const timerKey = `dutyTimer:${userId}`;
-
-    try {
-        const duty = await dutyRepository.findOne({
-            where: { userInfo: { user_id: userId }, isActive: true },
-            relations: ["userInfo"],
-        });
-
-        if (duty?.lastDutyOn) {
-            const now = new Date();
-            const duration = (now.getTime() - duty.lastDutyOn.getTime()) / 1000;
-
-            Object.assign(duty, {
-                isActive: false,
-                lastDutyOff: now,
-                lastDutyDuration: Math.floor(duration),
-                totalDutyTime: (duty.totalDutyTime ?? 0) + Math.floor(duration),
-            });
-
-            await dutyRepository.save(duty);
-            await logDutyStop(duty);
-            await redis.del(timerKey);
-            console.log(`Duty for user ${userId} auto-ended after timeout.`);
-        } else {
-            console.warn(`No active duty found for user ${userId}.`);
-        }
-    } catch (error) {
-        console.error(`Failed to auto-end duty for user ${userId}:`, error);
-    }
-};
-
-// Load timers from Redis on server startup
-export const loadTimersFromRedis = async (): Promise<void> => {
-    try {
-        const keys = await redis.keys("dutyTimer:*");
-
-        for (const key of keys) {
-            const userId = parseInt(key.split(":")[1], 10);
-            const startTime = parseInt((await redis.get(key)) ?? "0", 10);
-            const elapsedTime = Date.now() - startTime;
-
-            if (elapsedTime < AUTO_END_DURATION_MS) {
-                await startDutyTimer(userId, AUTO_END_DURATION_MS - elapsedTime);
-            } else {
+const scheduleAfkCheck = async (userId: number, startTime: number) => {
+    const timeoutId = setTimeout(async () => {
+        try {
+            const key = DUTY_KEY_PREFIX + userId;
+            const currentStartTimeStr = await redis.get(key);
+            
+            if (currentStartTimeStr && parseInt(currentStartTimeStr) === startTime) {
+                console.log(`AFK timeout reached for user ${userId}, stopping duty`);
                 await stopDuty(userId);
             }
+        } catch (error) {
+            console.error('Error in AFK check:', error);
         }
+    }, AFK_TIMEOUT);
+
+    return timeoutId;
+};
+
+export const startDuty = async (userId: number): Promise<{
+    success: boolean;
+    duty?: Duty;
+    message?: string;
+    startTime?: number;
+}> => {
+    try {
+        const key = DUTY_KEY_PREFIX + userId;
+        
+        const existingDuty = await redis.get(key);
+        if (existingDuty) {
+            return { success: false, message: "User already on duty" };
+        }
+
+        const user = await userRepository.findOne({ where: { user_id: userId } });
+        if (!user) {
+            return { success: false, message: "User not found" };
+        }
+
+        const startTime = Date.now(); // Server-side timestamp
+        await redis.set(key, startTime.toString());
+        
+        scheduleAfkCheck(userId, startTime);
+        
+        let duty = await dutyRepository.findOne({
+            where: { userInfo: { user_id: userId } },
+            relations: ['userInfo']
+        });
+
+        if (!duty) {
+            duty = new Duty();
+            duty.userInfo = user;
+        }
+
+        duty.isActive = true;
+        duty.lastDutyOn = new Date(startTime);
+        duty.lastDutyOff = null;
+        
+        const savedDuty = await dutyRepository.save(duty);
+        return { 
+            success: true, 
+            duty: savedDuty,
+            startTime // Return startTime to client
+        };
+
     } catch (error) {
-        console.error("Error loading timers from Redis:", error);
+        console.error('Error starting duty:', error);
+        return { success: false, message: "Internal server error" };
     }
 };
 
-// Stop the duty manually
-export const stopDuty = async (userId: number): Promise<void> => {
-    const dutyRepository = AppDataSource.getRepository(Duty);
-    const timerKey = `dutyTimer:${userId}`;
-
+export const stopDuty = async (userId: number): Promise<{
+    success: boolean;
+    totalDutyTime?: number;
+    lastDutyDuration?: number;
+    message?: string;
+}> => {
     try {
-        const duty = await dutyRepository.findOne({
-            where: { userInfo: { user_id: userId }, isActive: true },
-            relations: ["userInfo"],
-        });
-
-        if (!duty?.lastDutyOn) {
-            console.warn(`Invalid or inactive duty for user ${userId}`);
-            return;
+        const key = DUTY_KEY_PREFIX + userId;
+        
+        const startTimeStr = await redis.get(key);
+        if (!startTimeStr) {
+            return { success: false, message: "No active duty found" };
         }
 
-        const now = new Date();
-        const duration = (now.getTime() - duty.lastDutyOn.getTime()) / 1000;
+        const startTime = parseInt(startTimeStr);
+        const endTime = Date.now(); // Server-side timestamp
+        const durationMs = endTime - startTime;
+        const durationSeconds = Math.floor(durationMs / 1000);
 
-        Object.assign(duty, {
-            isActive: false,
-            lastDutyOff: now,
-            lastDutyDuration: Math.floor(duration),
-            totalDutyTime: (duty.totalDutyTime ?? 0) + Math.floor(duration),
-        });
+        await redis.del(key);
 
-        await dutyRepository.save(duty);
-        await logDutyStop(duty);
-
-        if (dutyTimers[userId]) {
-            clearTimeout(dutyTimers[userId]);
-            delete dutyTimers[userId];
-        }
-        await redis.del(timerKey);
-        console.log(`Duty for user ${userId} manually stopped.`);
-    } catch (error) {
-        console.error(`Failed to stop duty for user ${userId}:`, error);
-    }
-};
-
-// Function to log the start of a duty
-const logDutyStart = async (userId: number): Promise<void> => {
-    const dutyRepository = AppDataSource.getRepository(Duty);
-    const dutyLogRepository = AppDataSource.getRepository(DutyLog);
-    const userInfoRepository = AppDataSource.getRepository(UserInfo);
-
-    try {
-        const userInfo = await userInfoRepository.findOneBy({ user_id: userId });
         const duty = await dutyRepository.findOne({
             where: { userInfo: { user_id: userId }, isActive: true },
+            relations: ['userInfo']
         });
 
-        if (userInfo && duty) {
+        if (duty) {
+            duty.isActive = false;
+            duty.lastDutyOff = new Date(endTime);
+            duty.lastDutyDuration = durationSeconds;
+            duty.totalDutyTime += durationSeconds;
+            await dutyRepository.save(duty);
+
             const dutyLog = new DutyLog();
-            dutyLog.userInfo = userInfo;
             dutyLog.duty = duty;
+            dutyLog.userInfo = duty.userInfo;
+            dutyLog.dutyOn = new Date(startTime);
+            dutyLog.dutyOff = new Date(endTime);
+            dutyLog.durationInSeconds = durationSeconds;
             await dutyLogRepository.save(dutyLog);
-            console.log(`Duty log started for user ${userId}.`);
+
+            return {
+                success: true,
+                totalDutyTime: duty.totalDutyTime,
+                lastDutyDuration: durationSeconds
+            };
         }
+
+        return { success: false, message: "No active duty record found" };
+
     } catch (error) {
-        console.error(`Failed to log duty start for user ${userId}:`, error);
+        console.error('Error stopping duty:', error);
+        return { success: false, message: "Internal server error" };
     }
 };
 
-// Function to log the stop of a duty
-const logDutyStop = async (duty: Duty): Promise<void> => {
-    const dutyLogRepository = AppDataSource.getRepository(DutyLog);
+export const isOnDuty = async (userId: number): Promise<boolean> => {
+    const key = DUTY_KEY_PREFIX + userId;
+    const exists = await redis.exists(key);
+    return exists === 1;
+};
 
+export const getCurrentDuration = async (userId: number): Promise<number | null> => {
+    const key = DUTY_KEY_PREFIX + userId;
+    const startTimeStr = await redis.get(key);
+    
+    if (!startTimeStr) {
+        return null;
+    }
+
+    const startTime = parseInt(startTimeStr);
+    const currentServerTime = Date.now(); // Using server time for accuracy
+    return currentServerTime - startTime;
+};
+
+
+export const loadTimersFromRedis = async (): Promise<void> => {
     try {
-        const dutyLog = await dutyLogRepository.findOne({
-            where: { duty: { duty_id: duty.duty_id }, dutyOff: IsNull() },
-            order: { dutyOn: "DESC" },
-        });
+        // Get all keys matching the duty prefix pattern
+        const keys = await redis.keys(`${DUTY_KEY_PREFIX}*`);
+        
+        // For each active duty in Redis
+        for (const key of keys) {
+            const userId = parseInt(key.replace(DUTY_KEY_PREFIX, ''));
+            const startTimeStr = await redis.get(key);
+            
+            if (!startTimeStr) {
+                continue;
+            }
 
-        if (dutyLog) {
-            dutyLog.dutyOff = new Date();
-            dutyLog.durationInSeconds = Math.floor(
-                (dutyLog.dutyOff.getTime() - dutyLog.dutyOn.getTime()) / 1000
-            );
-            await dutyLogRepository.save(dutyLog);
-            console.log(`Duty log stopped for duty ${duty.duty_id}.`);
+            // Verify duty record exists in database
+            const duty = await dutyRepository.findOne({
+                where: { userInfo: { user_id: userId } },
+                relations: ['userInfo']
+            });
+
+            if (!duty) {
+                // If no matching database record, remove the Redis key
+                console.log(`No duty record found for user ${userId}, cleaning up Redis`);
+                await redis.del(key);
+                continue;
+            }
+
+            // Ensure database record is marked as active
+            if (!duty.isActive) {
+                duty.isActive = true;
+                duty.lastDutyOn = new Date(parseInt(startTimeStr));
+                await dutyRepository.save(duty);
+            }
+
+            console.log(`Loaded active duty for user ${userId}`);
         }
+
+        console.log('Duty timers initialized successfully');
     } catch (error) {
-        console.error(`Failed to log duty stop for duty ${duty.duty_id}:`, error);
+        console.error('Error loading duty timers:', error);
+        throw error;
     }
 };

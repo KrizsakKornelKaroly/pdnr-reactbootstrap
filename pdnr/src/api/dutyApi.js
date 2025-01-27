@@ -1,4 +1,4 @@
-export const API_BASE_URL = 'http://88.151.101.171:3349/v1';
+export const API_BASE_URL = 'https://api.arrp-lspd.hu/v1';
 
 export const fetchAuthStatus = async () => {
   try {
@@ -76,17 +76,31 @@ export const loginUser = async (email, password) => {
 };
 
 export const logoutUser = async () => {
-  const response = await fetch(`${API_BASE_URL}/logout`, {
-    method: 'POST',
-    credentials: 'include', // Important to include cookies
-  });
+  try {
+    // Call stopDuty() first to stop the duty before logging out
+    const stopDutyResult = await stopDuty();
 
-  if (!response.ok) {
-    throw new Error(`Logout failed: ${response.statusText}`);
+    // Log the result of stopDuty if needed for debugging
+    console.log('Duty stopped:', stopDutyResult);
+
+    // Proceed to destroy the session and send logout response
+    const response = await fetch(`${API_BASE_URL}/logout`, {
+      method: 'POST',
+      credentials: 'include', // Important to include cookies
+    });
+
+    if (!response.ok) {
+      throw new Error(`Logout failed: ${response.statusText}`);
+    }
+
+    return response.json(); // Only send the logout response after stopDuty completes
+
+  } catch (error) {
+    console.error('Error during logout:', error);
+    throw error; // Propagate the error for the caller to handle
   }
-
-  return response.json();
 };
+
 
 export const requestPassword = async (userEmail) => {
   const response = await fetch(`${API_BASE_URL}/request-password-reset`, {
@@ -113,7 +127,7 @@ export const startDuty = async () => {
     headers: {
       'Content-Type': 'application/json',
     },
-    credentials: 'include', // Include cookies with requests
+    credentials: 'include',
   });
 
   if (!response.ok) {
@@ -121,8 +135,12 @@ export const startDuty = async () => {
     throw new Error(data.message || 'Error starting duty!');
   }
 
-  const data = await response.json(); // Get the response data
-  return data.message; // Return the success message
+  const data = await response.json();
+  return {
+    success: true,
+    startTime: data.startTime, // Server's timestamp
+    message: data.message
+  };
 };
 
 export const stopDuty = async () => {
@@ -131,7 +149,7 @@ export const stopDuty = async () => {
     headers: {
       'Content-Type': 'application/json',
     },
-    credentials: 'include', // Include cookies with requests
+    credentials: 'include',
   });
 
   if (!response.ok) {
@@ -139,8 +157,12 @@ export const stopDuty = async () => {
     throw new Error(data.message || 'Error stopping duty!');
   }
 
-  const data = await response.json(); // Get the response data
-  return data.message; // Return the success message
+  const data = await response.json();
+  return {
+    message: data.message,
+    totalDutyTime: data.totalDutyTime,
+    lastDutyDuration: data.lastDutyDuration
+  };
 };
 
 export const fetchLastEndedDuty = async () => {
@@ -164,4 +186,45 @@ export const fetchLastEndedDuty = async () => {
   } catch (e) {
     throw new Error(`Nem sikerült lekérni az utolsó befejezett szolgálat dátumát: ${e.message}`);
   }
+};
+
+export const resetPassword = async (token, newPassword) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/reset-password?token=${token}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ newPassword }),
+      credentials: 'include',
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Password reset failed');
+    }
+
+    return data;
+  } catch (error) {
+    throw new Error(error.message || 'Password reset failed');
+  }
+};
+
+export const requestPasswordReset = async (email) => {
+  const response = await fetch(`${API_BASE_URL}/request-password-reset`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ email }),
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    const data = await response.json();
+    throw new Error(data.error || 'Password reset request failed');
+  }
+
+  return response.json();
 };

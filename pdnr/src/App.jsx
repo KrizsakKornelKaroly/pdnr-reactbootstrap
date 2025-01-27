@@ -4,10 +4,11 @@ import Col from 'react-bootstrap/Col';
 import './App.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import HomeCardComponent from './pages/home/HomeCardComponent';
+import Layout from './components/Layout';
 
 const serviceSystemCardData = {
   title: "SZNR v3.0",
-  imageSrc: "/android-chrome-192x192.png",
+  icon: "bi-shield-lock",
   listItems: [
     "Szolgálati Nyílvántartó Rendszer",
     "Szolgálatban töltött idő mérése",
@@ -18,7 +19,7 @@ const serviceSystemCardData = {
 
 const documentManagementCardData = {
   title: "Állománydokumentáció",
-  imageSrc: "/android-chrome-192x192.png",
+  icon: "bi-file-text",
   listItems: [
     "Teljes állománylista",
     "Eltöltött idők az állományban/rangon",
@@ -29,9 +30,7 @@ const documentManagementCardData = {
 
 function App() {
   return (
-    <>
-      <h1 className='welcome'>Üdvözöllek a PDNR v1.0 rendszerben!</h1>
-
+    <Layout>
       <Container>
         <Row>
           <Col xs={12} md={6} className='kartyak'>
@@ -42,7 +41,7 @@ function App() {
           </Col>
         </Row>
       </Container>
-    </>
+    </Layout>
   );
 }
 

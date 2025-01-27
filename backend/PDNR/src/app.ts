@@ -4,7 +4,7 @@ require('ts-node').register({
       module: 'commonjs'
     }
   });
-import express, { Request, Response } from "express";
+import express, { Request, Response, NextFunction } from "express";
 import "reflect-metadata";
 import session from "express-session";
 import RedisStore from "connect-redis";
@@ -16,82 +16,197 @@ import cors from "cors";
 import redisClient from "./utils/redisClient";
 import { loadTimersFromRedis } from "./services/duty.service";
 import helmet from "helmet";
+import rateLimit from 'express-rate-limit';
+import hpp from 'hpp';
+import compression from 'compression';
 import logger from "./logger";  // Import the logger
 
+// Security: Move to environment variables
 const PORT = parseInt(process.env.API_PORT || '3349');
+const NODE_ENV = process.env.NODE_ENV || 'development';
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS ? 
+    process.env.ALLOWED_ORIGINS.split(',') : 
+    ["http://localhost:5173"];
 
 console.log(AppDataSource)
 AppDataSource.initialize().then(async () => {
     logger.info("Data Source has been initialized!");  // Log when the data source is initialized
     console.log("Is Data Source Initialized:", AppDataSource.isInitialized);
 
-    await loadTimersFromRedis();
-        
-    const userRepo = AppDataSource.getRepository(UserInfo);
-    const user = await userRepo.findOneBy({ user_id: 1 });
-    logger.info(`User info loaded: ${user}`);  // Log user info retrieval
-    
-    const users = await AppDataSource.manager.find(UserInfo);
-    logger.info(`Loaded users: ${JSON.stringify(users)}`);  // Log all users retrieved
-
     const app = express();
 
-    // Logging middleware (using logger)
-    app.use((req, res, next) => {
-        logger.info(`Received ${req.method} request for ${req.originalUrl}`);  // Log request details
+    // Security Headers
+    app.use(helmet({
+        contentSecurityPolicy: {
+            directives: {
+                defaultSrc: ["'self'"],
+                scriptSrc: ["'self'"],
+                styleSrc: ["'self'", "'unsafe-inline'"],
+                imgSrc: ["'self'", "data:", "https:"],
+                connectSrc: ["'self'"],
+                fontSrc: ["'self'"],
+                objectSrc: ["'none'"],
+                mediaSrc: ["'self'"],
+                frameSrc: ["'none'"],
+            },
+        },
+        crossOriginEmbedderPolicy: true,
+        crossOriginOpenerPolicy: true,
+        crossOriginResourcePolicy: { policy: "same-site" },
+        dnsPrefetchControl: { allow: false },
+        frameguard: { action: "deny" },
+        hidePoweredBy: true,
+        hsts: {
+            maxAge: 31536000,
+            includeSubDomains: true,
+            preload: true
+        },
+        ieNoOpen: true,
+        noSniff: true,
+        referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+        xssFilter: true,
+    }));
+
+    // Rate limiting
+    const limiter = rateLimit({
+        windowMs: 15 * 60 * 1000, // 15 minutes
+        max: 100, // Limit each IP to 100 requests per windowMs
+        message: 'Too many requests from this IP, please try again later.',
+        standardHeaders: true,
+        legacyHeaders: false,
+    });
+    app.use(limiter);
+
+    // Prevent HTTP Parameter Pollution
+    app.use(hpp());
+
+    // Compression
+    app.use(compression());
+
+    // Logging middleware
+    app.use((req: Request, res: Response, next: NextFunction) => {
+        logger.info(`${req.method} ${req.originalUrl} - IP: ${req.ip}`);
+        res.on('finish', () => {
+            logger.info(`${req.method} ${req.originalUrl} - Status: ${res.statusCode}`);
+        });
         next();
     });
 
-    // Configure session middleware
-    app.use(
-        session({
-            store: new RedisStore({ client: redisClient }),
-            secret: process.env.SESSION_SECRET || "defaultSecret",
-            resave: false,
-            saveUninitialized: false,
-            cookie: {
-                secure: false, // Set to true if using HTTPS
-                httpOnly: true,
-                maxAge: 1000 * 60 * 60 * 24, // 1 day
-            },
-        })
-    );
+    // Session configuration
+    const sessionConfig = {
+        store: new RedisStore({ client: redisClient }),
+        secret: process.env.SESSION_SECRET || "defaultSecret",
+        name: 'sessionId', // Change default session cookie name
+        resave: false,
+        saveUninitialized: false,
+        cookie: {
+            secure: NODE_ENV === 'production', // Only send cookies over HTTPS in production
+            httpOnly: true,
+            maxAge: 1000 * 60 * 60 * 24, // 1 day
+            sameSite: 'strict' as const,
+            domain: process.env.COOKIE_DOMAIN || undefined,
+            path: '/',
+        },
+        rolling: true, // Refresh session with each request
+    };
 
-    app.use(express.json());
-    app.use(express.urlencoded({ extended: true }));
+    app.use(session(sessionConfig));
+
+    // Body parsers with limits
+    app.use(express.json({ limit: '10kb' }));
+    app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
     // CORS configuration
-    app.use(
-        cors({
-            origin: [
-                "http://localhost:5173",
-                "http://88.151.101.171:3349",
-                "http://88.151.101.171:5173",
-                "http://0.0.0.0:3349",
-                "http://0.0.0.0:5173",
-            ],
-            credentials: true,
-            optionsSuccessStatus: 200,
-            methods: ["GET", "POST", "OPTIONS"]
-        })
-    );
+    app.use(cors({
+        origin: (origin, callback) => {
+            if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+                callback(null, true);
+            } else {
+                callback(new Error('Not allowed by CORS'));
+            }
+        },
+        credentials: true,
+        optionsSuccessStatus: 200,
+        methods: ['GET', 'POST', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization'],
+        maxAge: 86400, // CORS preflight cache for 24 hours
+    }));
 
-    // Apply Helmet for enhanced security (sets HTTP headers)
-    app.use(helmet());
-
-    // Apply routes
-    app.use("/v1", router);
-
-    // Error handling middleware
-    app.use((err: any, req: Request, res: Response, next: any) => {
-        logger.error('Unhandled error occurred', err);  // Log any unhandled errors
-        res.status(500).send('Something broke!');
+    // Security: Add timeout to all requests
+    app.use((req: Request, res: Response, next: NextFunction) => {
+        res.setTimeout(30000, () => {
+            res.status(408).send('Request Timeout');
+        });
+        next();
     });
 
-    app.listen(PORT, '0.0.0.0', () => {
-        logger.info(`Server is running on port ${PORT}`);  // Log server start
+    await loadTimersFromRedis();
+        
+    //const userRepo = AppDataSource.getRepository(UserInfo);
+    //const user = await userRepo.findOneBy({ user_id: 1 });
+    //logger.info(`User info loaded: ${user}`);  // Log user info retrieval
+    
+   // const users = await AppDataSource.manager.find(UserInfo);
+   // logger.info(`Loaded users: ${JSON.stringify(users)}`);  // Log all users retrieved
+
+    // Routes
+    app.use("/v1", router);
+
+    // 404 handler
+    app.use((req: Request, res: Response) => {
+        res.status(404).json({ error: 'Not Found' });
+    });
+
+    // Error handling middleware
+    app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+        logger.error('Error:', {
+            message: err.message,
+            stack: err.stack,
+            path: req.path,
+            method: req.method,
+        });
+
+        // Don't expose internal error details in production
+        const response = NODE_ENV === 'production' 
+            ? { error: 'Internal Server Error' }
+            : { error: err.message, stack: err.stack };
+
+        res.status(500).json(response);
+    });
+
+    // Graceful shutdown
+    const gracefulShutdown = async () => {
+        logger.info('Received shutdown signal. Starting graceful shutdown...');
+        
+        // Close server
+        server.close(async () => {
+            logger.info('HTTP server closed.');
+            
+            try {
+                // Close database connection
+                await AppDataSource.destroy();
+                logger.info('Database connection closed.');
+                
+                // Close Redis connection
+                await redisClient.quit();
+                logger.info('Redis connection closed.');
+                
+                process.exit(0);
+            } catch (error) {
+                logger.error('Error during shutdown:', error);
+                process.exit(1);
+            }
+        });
+    };
+
+    process.on('SIGTERM', gracefulShutdown);
+    process.on('SIGINT', gracefulShutdown);
+
+    const server = app.listen(PORT, '0.0.0.0', () => {
+        logger.info(`Server is running on port ${PORT} in ${NODE_ENV} mode`);
     });
 })
 .catch((error) => {
-    logger.error("Error initializing data source", error);  // Log initialization error
+    logger.error("Error initializing data source:", error);
+    process.exit(1);
 });

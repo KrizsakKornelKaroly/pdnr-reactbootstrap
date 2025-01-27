@@ -1,120 +1,129 @@
-import { useState } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
-import axios from "axios";
+import { useState } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
-  Container,
   Form,
   Button,
   Alert,
   Card,
   InputGroup,
-} from "react-bootstrap";
-import { Eye, EyeSlash } from "react-bootstrap-icons"; // Bootstrap icons
-import dotenv from "dotenv";
-import process from "process";
+} from 'react-bootstrap';
+import { Eye, EyeSlash } from 'react-bootstrap-icons';
+import Layout from '../../components/Layout';
+import { resetPassword } from '../../api/dutyApi';
 
 const ResetPasswordPage = () => {
   const [searchParams] = useSearchParams();
-  const token = searchParams.get("token");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false); // To toggle password visibility
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false); // To toggle confirm password visibility
-  const [message, setMessage] = useState("");
-  const [variant, setVariant] = useState("danger"); // For alert styling
-  const navigate = useNavigate(); // useNavigate hook for redirection
+  const token = searchParams.get('token');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [message, setMessage] = useState('');
+  const [variant, setVariant] = useState('danger');
+  const navigate = useNavigate();
 
   const handlePasswordReset = async (e) => {
     e.preventDefault();
 
-    if (newPassword !== confirmPassword) {
-      setMessage("Passwords do not match!");
-      setVariant("danger");
+    if (!token) {
+      setMessage('Érvénytelen jelszó visszaállítási link.');
+      setVariant('danger');
       return;
     }
 
-    dotenv.config();
-
-    const API_BASE_URL = process.env.API_BASE_URL;
+    if (newPassword !== confirmPassword) {
+      setMessage('A jelszavak nem egyeznek!');
+      setVariant('danger');
+      return;
+    }
 
     try {
-      await axios.post(
-        `${API_BASE_URL}/reset-password`,
-        {
-          newPassword,
-        },
-        {
-          params: { token },
-        }
-      );
-      setMessage("Sikeres jelszó változtatás!");
-      setVariant("success");
+      const response = await resetPassword(token, newPassword);
+      setMessage(response.message);
+      setVariant('success');
 
-      setTimeout(() => {
-        navigate("/belepes");
-      }, 2000);
+      // Only navigate if password reset was successful
+      if (response.message) {
+        setTimeout(() => {
+          navigate('/belepes');
+        }, 2000);
+      }
     } catch (error) {
-      setMessage(error.response?.data || "Valami hiba történt!");
-      setVariant("danger");
+      setMessage(error.message);
+      setVariant('danger');
     }
   };
 
   return (
-    <Container className="d-flex justify-content-center align-items-center vh-100">
-      <Card style={{ width: "100%", maxWidth: "400px" }} className="p-4 shadow">
-        <h2 className="text-center mb-4">Állítsa vissza jelszavát</h2>
-        <Form onSubmit={handlePasswordReset}>
-          <Form.Group controlId="formNewPassword" className="mb-3">
-            <Form.Label>Új jelszó</Form.Label>
-            <InputGroup>
-              <Form.Control
-                type={showPassword ? "text" : "password"}
-                placeholder="Írjon be egy új jelszót"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                required
-              />
-              <InputGroup.Text
-                onClick={() => setShowPassword(!showPassword)}
-                style={{ cursor: "pointer" }}
-              >
-                {showPassword ? <EyeSlash /> : <Eye />}
-              </InputGroup.Text>
-            </InputGroup>
-          </Form.Group>
+    <Layout>
+      <Card className="border-0 shadow-lg" style={{ maxWidth: '400px', margin: '0 auto' }}>
+        <Card.Body className="p-5">
+          <div className="text-center mb-4">
+            <h2 className="fw-bold mb-0">Jelszó Visszaállítása</h2>
+            <p className="text-muted">Adja meg az új jelszavát</p>
+          </div>
+          <Form onSubmit={handlePasswordReset}>
+            <Form.Group controlId="formNewPassword" className="mb-3">
+              <Form.Label>Új Jelszó</Form.Label>
+              <InputGroup>
+                <Form.Control
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Írja be új jelszavát"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  required
+                  className="border-end-0"
+                />
+                <InputGroup.Text
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{ cursor: 'pointer' }}
+                  className="bg-white border-start-0"
+                >
+                  {showPassword ? <EyeSlash /> : <Eye />}
+                </InputGroup.Text>
+              </InputGroup>
+            </Form.Group>
 
-          <Form.Group controlId="formConfirmPassword" className="mb-3">
-            <Form.Label>Jelszó megerősítése</Form.Label>
-            <InputGroup>
-              <Form.Control
-                type={showConfirmPassword ? "text" : "password"}
-                placeholder="Erősítse meg az új jelszót"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-              />
-              <InputGroup.Text
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                style={{ cursor: "pointer" }}
-              >
-                {showConfirmPassword ? <EyeSlash /> : <Eye />}
-              </InputGroup.Text>
-            </InputGroup>
-          </Form.Group>
+            <Form.Group controlId="formConfirmPassword" className="mb-4">
+              <Form.Label>Jelszó megerősítése</Form.Label>
+              <InputGroup>
+                <Form.Control
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  placeholder="Erősítse meg a jelszavát"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  className="border-end-0"
+                />
+                <InputGroup.Text
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  style={{ cursor: 'pointer' }}
+                  className="bg-white border-start-0"
+                >
+                  {showConfirmPassword ? <EyeSlash /> : <Eye />}
+                </InputGroup.Text>
+              </InputGroup>
+            </Form.Group>
 
-          <Button variant="primary" type="submit" className="w-100">
-            Jelszó visszaállítása
-          </Button>
-        </Form>
+            <Button 
+              variant="primary" 
+              type="submit" 
+              className="w-100 mb-3"
+            >
+              Jelszó Visszaállítása
+            </Button>
+          </Form>
 
-        {message && (
-          <Alert variant={variant} className="mt-3">
-            {message}
-          </Alert>
-        )}
+          {message && (
+            <Alert variant={variant} className="mt-3">
+              {message}
+            </Alert>
+          )}
+        </Card.Body>
       </Card>
-    </Container>
+    </Layout>
   );
 };
 
 export default ResetPasswordPage;
+

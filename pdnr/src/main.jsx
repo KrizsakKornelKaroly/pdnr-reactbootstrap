@@ -1,15 +1,17 @@
 import React from 'react';
 import * as ReactDOM from "react-dom/client";
+import { Provider } from 'react-redux';
 import {
   createBrowserRouter,
   RouterProvider,
 } from "react-router-dom";
+import { store } from './store';
 import App from './App.jsx';
 import './index.css';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider } from './providers/AuthProvider.jsx';
+import { ProtectedRoute } from './components/ProtectedRoute.jsx';
 import ErrorPage from './pages/ErrorPage.jsx';
 import LoginPage from './pages/login/LoginPage.jsx';
-import ProtectedPage from './pages/ProtectedPage.jsx';
 import RequestPasswordPage from './pages/request-password/RequestPasswordPage.jsx';
 import ResetPasswordPage from './pages/reset-password/ResetPasswordPage.jsx';
 import DutyPage from './pages/duty/DutyPage.jsx';
@@ -30,12 +32,6 @@ const router = createBrowserRouter([
     element: <RegistrationPage />,
   },
   {
-    path: "/test",
-    element: (
-      <ProtectedPage element={<ProtectedPage />} />
-    ), // Protect this route
-  },
-  {
     path: "/reset-password",
     element: <ResetPasswordPage />,
   },
@@ -45,14 +41,20 @@ const router = createBrowserRouter([
   },
   {
     path: "/duty",
-    element: <DutyPage />,
+    element: (
+      <ProtectedRoute>
+        <DutyPage />
+      </ProtectedRoute>
+    ),
   },
 ]);
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <AuthProvider>
-      <RouterProvider router={router} />
-    </AuthProvider>
+    <Provider store={store}>
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>
+    </Provider>
   </React.StrictMode>,
 );

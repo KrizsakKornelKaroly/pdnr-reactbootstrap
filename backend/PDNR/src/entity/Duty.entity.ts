@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToOne } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToOne, JoinColumn } from "typeorm";
 import { UserInfo } from "./UserInfo.entity";
 import { DutyLog } from "./DutyLog.entity";
 
@@ -23,6 +23,7 @@ export class Duty {
     lastDutyDuration!: number;
 
     @ManyToOne(() => UserInfo, (userInfo) => userInfo.duties)
+    @JoinColumn({ name: "userInfoId" })  // Make sure this matches the actual column name
     userInfo!: UserInfo;
 
     @OneToMany(() => DutyLog, (dutyLog) => dutyLog.duty)

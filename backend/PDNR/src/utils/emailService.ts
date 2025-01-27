@@ -16,12 +16,12 @@ const transporter = nodemailer.createTransport({
 
 // Function to send a password reset email
 export const sendResetEmail = async (userEmail: string, resetToken: string): Promise<void> => {
-  const resetLink = `http://localhost:5173/reset-password?token=${resetToken}`;
+  const resetLink = `https://betademov3.arrp-lspd.hu/reset-password?token=${resetToken}`;
   const mailOptions = {
     from: process.env.GMAIL_USER,
     to: userEmail,
-    subject: 'Password Reset Request',
-    text: `Please click the following link to reset your password: ${resetLink}`,
+    subject: 'Jelszóvisszaállítás',
+    text: `Kérjük, kattintson a linkre a jelszó visszaállításához: ${resetLink}`,
   };
 
   try {

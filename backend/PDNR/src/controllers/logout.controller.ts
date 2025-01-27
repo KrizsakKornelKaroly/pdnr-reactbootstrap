@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { stopDutyController } from './stopDuty.controller';
 
 export const logoutController = (req: Request, res: Response) => {
   console.log('Logout route hit');
