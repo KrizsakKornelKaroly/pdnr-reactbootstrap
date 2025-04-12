@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { useDispatch, useSelector } from 'react-redux';
-import { checkAuth } from '../store/slices/authSlice';
+import { checkAuth, logoutUser } from '../store/slices/authSlice';
 
 const SESSION_CHECK_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
@@ -43,6 +43,21 @@ export const AuthProvider = ({ children }) => {
     return () => window.removeEventListener('focus', handleFocus);
   }, [dispatch, isAuthenticated, lastChecked]);
 
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      dispatch(checkAuth())
+        .unwrap()
+        .catch((error) => {
+          if (error.status === 401) {
+            dispatch(logoutUser());
+            window.location.href = '/belepes?session=expired';
+          }
+        });
+    }, SESSION_CHECK_INTERVAL);
+  
+    return () => clearInterval(intervalId);
+  }, [dispatch, isAuthenticated]);
+  
   return <>{children}</>;
 };
 

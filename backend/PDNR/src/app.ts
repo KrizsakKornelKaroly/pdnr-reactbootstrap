@@ -24,9 +24,6 @@ import logger from "./logger";  // Import the logger
 // Security: Move to environment variables
 const PORT = parseInt(process.env.API_PORT || '3349');
 const NODE_ENV = process.env.NODE_ENV || 'development';
-const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS ? 
-    process.env.ALLOWED_ORIGINS.split(',') : 
-    ["http://localhost:5173"];
 
 console.log(AppDataSource)
 AppDataSource.initialize().then(async () => {
@@ -75,7 +72,15 @@ AppDataSource.initialize().then(async () => {
         standardHeaders: true,
         legacyHeaders: false,
     });
-    app.use(limiter);
+
+    // Apply rate limiting to all routes except auth checks
+    app.use((req, res, next) => {
+        const authPaths = ['/check-auth', '/v1/check-auth'];
+        if (authPaths.some(path => req.originalUrl.startsWith(path))) {
+            return next();
+        }
+        limiter(req, res, next);
+    });
 
     // Prevent HTTP Parameter Pollution
     app.use(hpp());
@@ -92,45 +97,40 @@ AppDataSource.initialize().then(async () => {
         next();
     });
 
+    // Updated CORS configuration
+    app.use(cors({
+        origin: [
+            'https://betademov3.arrp-lspd.hu',
+            'http://localhost:5173'
+        ],
+        credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Cookie'],
+        exposedHeaders: ['Content-Length', 'Set-Cookie', 'Authorization', 'X-CSRF-Token']
+    }));
+
     // Session configuration
     const sessionConfig = {
         store: new RedisStore({ client: redisClient }),
         secret: process.env.SESSION_SECRET || "defaultSecret",
-        name: 'sessionId', // Change default session cookie name
+        name: 'sessionId',
         resave: false,
         saveUninitialized: false,
         cookie: {
-            secure: NODE_ENV === 'production', // Only send cookies over HTTPS in production
+            secure: NODE_ENV === 'production',
             httpOnly: true,
-            maxAge: 1000 * 60 * 60 * 24, // 1 day
-            sameSite: 'strict' as const,
-            domain: process.env.COOKIE_DOMAIN || undefined,
+            maxAge: 1000 * 60 * 60 * 24,
+            sameSite: NODE_ENV === 'production' ? 'none' : 'lax' as 'lax' | 'none',
+            domain: '', // Explicitly set fallback domain '.arrp-lspd.hu'
             path: '/',
         },
-        rolling: true, // Refresh session with each request
+        rolling: true,
     };
-
     app.use(session(sessionConfig));
 
     // Body parsers with limits
     app.use(express.json({ limit: '10kb' }));
     app.use(express.urlencoded({ extended: true, limit: '10kb' }));
-
-    // CORS configuration
-    app.use(cors({
-        origin: (origin, callback) => {
-            if (!origin || ALLOWED_ORIGINS.includes(origin)) {
-                callback(null, true);
-            } else {
-                callback(new Error('Not allowed by CORS'));
-            }
-        },
-        credentials: true,
-        optionsSuccessStatus: 200,
-        methods: ['GET', 'POST', 'OPTIONS'],
-        allowedHeaders: ['Content-Type', 'Authorization'],
-        maxAge: 86400, // CORS preflight cache for 24 hours
-    }));
 
     // Security: Add timeout to all requests
     app.use((req: Request, res: Response, next: NextFunction) => {

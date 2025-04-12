@@ -1,33 +1,64 @@
-import { Navbar, Nav, Container, Button } from 'react-bootstrap';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth';
+import { Navbar, Nav, Container, Button } from "react-bootstrap";
+import { Link } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
+import { useEffect, useState } from "react";
+import LoadingSpinner from "./LoadingSpinner.jsx";
+import LazyLoad from "react-lazyload";
 
 const AppNavbar = () => {
   const { logout, isAuthenticated } = useAuth();
-  const navigate = useNavigate();
 
   const handleLogout = async () => {
     logout();
-    navigate('/belepes');
   };
 
+  const [isPreloading, setIsPreloading] = useState(false);
+
+  useEffect(() => {
+    const preloadRoutes = async () => {
+      setIsPreloading(true);
+      try {
+        if (isAuthenticated) {
+          await import("../pages/duty/DutyPage.jsx");
+        }
+        await import("../pages/login/LoginPage.jsx");
+      } finally {
+        setIsPreloading(false);
+      }
+    };
+    preloadRoutes();
+  }, [isAuthenticated]);
+
+  // Add loading indicator in Navbar
+  {
+    isPreloading && (
+      <div className="navbar-preloader">
+        <LoadingSpinner size="sm" variant="primary" />
+      </div>
+    );
+  }
+
   return (
-    <Navbar 
-      expand="lg" 
-      className="navbar-glass"
-    >
+    <Navbar expand="lg" className="navbar-glass">
       <Container>
         <Navbar.Brand as={Link} to="/" className="d-flex align-items-center">
-          <img
-            src="/android-chrome-192x192.png"
-            width="32"
-            height="32"
-            className="d-inline-block align-top me-2"
-            alt="Logo"
-          />
+          <LazyLoad
+            once
+            offset={100}
+            placeholder={<div className="logo-placeholder" />}
+          >
+            <img
+              src="/android-chrome-192x192.png"
+              width="32"
+              height="32"
+              className="d-inline-block align-top me-2"
+              loading="lazy"
+              alt="Logo"
+            />
+          </LazyLoad>
           <span className="brand-text-span">PDNR</span>
         </Navbar.Brand>
-        <Navbar.Toggle 
+        <Navbar.Toggle
           aria-controls="basic-navbar-nav"
           className="custom-toggler"
         />
@@ -41,7 +72,7 @@ const AppNavbar = () => {
             )}
           </Nav>
           {isAuthenticated && (
-            <Button 
+            <Button
               onClick={handleLogout}
               variant="outline-light"
               className="nav-button"
@@ -57,4 +88,3 @@ const AppNavbar = () => {
 };
 
 export default AppNavbar;
-

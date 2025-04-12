@@ -63,56 +63,56 @@ const LoginPage = () => {
                 </div>
               </Form.Group>
 
-              <Form.Group controlId="formPassword" className="mb-4">
-                <Form.Label className="auth-label">Jelszó</Form.Label>
-                <div className="input-group">
-                  <span className="input-group-text">
-                    <i className="bi bi-key"></i>
-                  </span>
-                  <Form.Control
-                    type={showPassword ? "text" : "password"}
-                    name="password"
-                    placeholder="Írja be a jelszavát"
-                    required
-                    className="auth-input"
-                  />
-                  <button
-                    type="button"
-                    className="input-group-text password-toggle"
-                    onClick={togglePasswordVisibility}
-                    tabIndex="-1"
-                  >
-                    <i className={`bi bi-eye${showPassword ? '-slash' : ''}`}></i>
-                  </button>
-                </div>
-              </Form.Group>
+            <Form.Group controlId="formPassword" className="mb-4">
+              <Form.Label className="auth-label">Jelszó</Form.Label>
+              <div className="input-group">
+                <span className="input-group-text">
+                  <i className="bi bi-key"></i>
+                </span>
+                <Form.Control
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  placeholder="Írja be a jelszavát"
+                  required
+                  className="auth-input"
+                />
+                <button
+                  type="button"
+                  className="input-group-text password-toggle"
+                  onClick={togglePasswordVisibility}
+                  tabIndex="-1"
+                >
+                  <i className={`bi bi-eye${showPassword ? '-slash' : ''}`}></i>
+                </button>
+              </div>
+            </Form.Group>
 
-              <Button 
-                variant="primary" 
-                type="submit" 
-                className="auth-button w-100" 
-                disabled={loading}
-              >
-                {loading ? (
-                  <>
-                    <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                    Bejelentkezés...
-                  </>
-                ) : (
-                  <>
-                    <i className="bi bi-box-arrow-in-right me-2"></i>
-                    Bejelentkezés
-                  </>
-                )}
-              </Button>
-            </Form>
+            <Button 
+              variant="primary" 
+              type="submit" 
+              className="auth-button w-100" 
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                  Bejelentkezés...
+                </>
+              ) : (
+                <>
+                  <i className="bi bi-box-arrow-in-right me-2"></i>
+                  Bejelentkezés
+                </>
+              )}
+            </Button>
+          </Form>
 
-            {error && (
-              <Alert variant="danger" className="auth-alert mt-3">
-                <i className="bi bi-exclamation-circle me-2"></i>
-                {error}
-              </Alert>
-            )}
+          {error && (
+            <Alert variant="danger" className="auth-alert mt-3">
+              <i className="bi bi-exclamation-circle me-2"></i>
+              {error}
+            </Alert>
+          )}
 
             <div className="text-center mt-4">
               <Link to="/request-password" className="auth-link">

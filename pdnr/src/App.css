@@ -56,6 +56,14 @@ body {
 }
 
 /* Navbar styles */
+
+.navbar-preloader {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
 .navbar {
   background-color: rgba(0, 0, 51, 0.8) !important;
   backdrop-filter: blur(10px);
@@ -515,3 +523,4 @@ body {
 p, h1, h2, h3, h4, h5, h6, span, div, label {
   color: #004d85;
 }
+

@@ -5,7 +5,7 @@ dotenv.config();
 
 export const AppDataSource = new DataSource({
     type: "mysql",
-    host: "localhost",  // Correct since same VPS
+    host: "127.0.0.1",  // Correct since same VPS
     port: 3306,
     username: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
@@ -16,9 +16,7 @@ export const AppDataSource = new DataSource({
     // Optimized pool settings
     poolSize: 20,
     connectTimeout: 10000,
-    cache: {
-      duration: 60000 // 1 minute cache
-    },
+    cache: false,
     extra: {
       connectionLimit: 20,
       queueLimit: 0,

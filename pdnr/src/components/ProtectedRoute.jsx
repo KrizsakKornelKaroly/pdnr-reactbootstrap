@@ -1,13 +1,17 @@
-import { Navigate, useLocation } from 'react-router-dom';
-import PropTypes from 'prop-types';
-import { useAuth } from '../hooks/useAuth';
+import PropTypes from "prop-types";
+import { useAuth } from "../hooks/useAuth";
+import { useLocation, Navigate } from "react-router-dom";
+import { useMemo } from 'react';
+import LoadingSpinner from "./LoadingSpinner";
 
 export const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
   const location = useLocation();
 
+  const memoizedChildren = useMemo(() => children, [children]);
+
   if (loading) {
-    return <div>Loading...</div>; // Or your loading component
+    return <LoadingSpinner fullScreen />;
   }
 
   if (!isAuthenticated) {
@@ -15,7 +19,7 @@ export const ProtectedRoute = ({ children }) => {
     return <Navigate to="/belepes" state={{ from: location }} replace />;
   }
 
-  return children;
+  return memoizedChildren;
 };
 
 ProtectedRoute.propTypes = {

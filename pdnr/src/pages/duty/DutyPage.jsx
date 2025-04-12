@@ -1,14 +1,22 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Button, Alert, Container, Row, Col, Card } from 'react-bootstrap';
-import { AlertCircle, CheckCircle } from 'lucide-react';
+import Button from 'react-bootstrap/Button';
+import Alert from 'react-bootstrap/Alert';
+import Container from 'react-bootstrap/Container';
+import Row from 'react-bootstrap/Row';
+import Col from 'react-bootstrap/Col';
+import Card from 'react-bootstrap/Card';
+import { 
+  AlarmFill as Clock,
+  ShieldFillCheck as Shield,
+} from 'react-bootstrap-icons'
 import { fetchLastEndedDuty, startDuty, stopDuty } from '../../api/dutyApi';
 import Layout from '../../components/Layout';
+import { throttle } from 'lodash';
 
 const DutyPage = () => {
   const [isOnDuty, setIsOnDuty] = useState(false);
   const [dutyStartTime, setDutyStartTime] = useState(null);
   const [error, setError] = useState(null);
-  const [lastActionTime, setLastActionTime] = useState(0);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [lastEndedDutyDate, setLastEndedDutyDate] = useState(null);
   const [totalDutyTime, setTotalDutyTime] = useState(0);
@@ -46,25 +54,17 @@ const DutyPage = () => {
     };
   }, []);
 
-  const handleAction = useCallback(async (action) => {
-    const now = Date.now();
-    if (now - lastActionTime < RATE_LIMIT_DELAY) {
-      setError('Kérjük, várjon, mielőtt újabb műveletet végezne.');
-      return;
-    }
-
-    setLastActionTime(now);
+  const handleAction = useCallback(throttle(async (action) => {
     setError(null);
-
+    
     try {
       if (action === 'start') {
         const response = await startDuty();
         if (response.success) {
           setIsOnDuty(true);
-          setDutyStartTime(now);
+          setDutyStartTime(Date.now());
           setElapsedTime(0);
-
-          // Set up AFK detection
+          
           afkTimeoutRef.current = setTimeout(() => {
             setError('A szolgálat automatikusan leállt inaktivitás miatt.');
             setIsOnDuty(false);
@@ -79,7 +79,7 @@ const DutyPage = () => {
     } catch (e) {
       setError(`Nem sikerült ${action === 'start' ? 'elindítani' : 'leállítani'} a szolgálatot: ${e.message}`);
     }
-  }, [lastActionTime, handleDutyEnd, AFK_TIMEOUT]);
+  }, RATE_LIMIT_DELAY, { leading: true, trailing: false }), [handleDutyEnd, AFK_TIMEOUT]);
 
   // Update elapsed time using server timestamp
   const updateElapsedTime = useCallback(() => {
@@ -154,6 +154,32 @@ const DutyPage = () => {
     };
   }, [isOnDuty]);
 
+  // Add this useEffect hook near your existing beforeunload handler
+  useEffect(() => {
+    const handleTabClose = (event) => {
+      if (isOnDuty) {
+        // Use sendBeacon with your existing API endpoint
+        const data = JSON.stringify({});
+        const headers = {
+          type: 'application/json',
+          credentials: 'include'
+        };
+        
+        navigator.sendBeacon(
+          `https://api.arrp-lspd.hu/v1/stopDuty`,
+          new Blob([data], headers)
+        );
+
+        // Optional: Add visual feedback
+        event.preventDefault();
+        event.returnValue = 'Szolgálat leállítás folyamatban...';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleTabClose);
+    return () => window.removeEventListener('beforeunload', handleTabClose);
+  }, [isOnDuty]);
+
   return (
     <Layout>
       <Container className="py-5">
@@ -189,7 +215,7 @@ const DutyPage = () => {
           <Row className="justify-content-center mb-4">
             <Col lg={8}>
               <Alert variant="info" className="d-flex align-items-center justify-content-center p-4">
-                <CheckCircle size={24} className="me-3" />
+                <Clock size={24} className="me-3" />
                 <span className="fs-5">Jelenleg szolgálatban: <strong>{formatTime(elapsedTime)}</strong></span>
               </Alert>
             </Col>
@@ -200,7 +226,7 @@ const DutyPage = () => {
           <Row className="justify-content-center mb-4">
             <Col lg={8}>
               <Alert variant="danger" className="d-flex align-items-center justify-content-center p-4">
-                <AlertCircle size={24} className="me-3" />
+                <Shield size={24} className="me-3" />
                 <span className="fs-5">{error}</span>
               </Alert>
             </Col>

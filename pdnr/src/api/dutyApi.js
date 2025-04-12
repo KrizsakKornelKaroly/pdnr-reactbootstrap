@@ -1,4 +1,4 @@
-export const API_BASE_URL = 'https://api.arrp-lspd.hu/v1';
+export const API_BASE_URL = 'http://localhost:3349/v1'; // https://api.arrp-lspd.hu/v1
 
 export const fetchAuthStatus = async () => {
   try {
@@ -72,18 +72,12 @@ export const loginUser = async (email, password) => {
     throw new Error(data.error || 'Login failed');
   }
 
+  console.log('Login response:', data);
   return data;
 };
 
 export const logoutUser = async () => {
   try {
-    // Call stopDuty() first to stop the duty before logging out
-    const stopDutyResult = await stopDuty();
-
-    // Log the result of stopDuty if needed for debugging
-    console.log('Duty stopped:', stopDutyResult);
-
-    // Proceed to destroy the session and send logout response
     const response = await fetch(`${API_BASE_URL}/logout`, {
       method: 'POST',
       credentials: 'include', // Important to include cookies
@@ -93,7 +87,7 @@ export const logoutUser = async () => {
       throw new Error(`Logout failed: ${response.statusText}`);
     }
 
-    return response.json(); // Only send the logout response after stopDuty completes
+    return response.json();
 
   } catch (error) {
     console.error('Error during logout:', error);

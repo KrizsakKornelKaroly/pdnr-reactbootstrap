@@ -41,8 +41,11 @@ export const loginController = async (req: Request, res: Response) => {
         req.session.email = user.email;
         console.log(req.session);
 
+        // Remove the password from the user object before sending the response
+        const { password: _, ...userWithoutPassword } = user;
+
         // Respond with JSON indicating successful login
-        res.status(200).json({ message: "Sikeres bejelentkezés", user });
+        res.status(200).json({ message: "Sikeres bejelentkezés", user: userWithoutPassword });
 
     } catch (error) {
         console.error("Error occurred while logging in:", error);

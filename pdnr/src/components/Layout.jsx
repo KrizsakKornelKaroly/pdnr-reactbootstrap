@@ -1,8 +1,19 @@
 import PropTypes from 'prop-types';
 import { Container } from 'react-bootstrap';
 import AppNavbar from './Navbar';
+import { throttle } from 'lodash';
+import { useCallback, useEffect } from 'react';
 
 const Layout = ({ children }) => {
+  const handleResize = useCallback(throttle(() => {
+    console.log('Window resized:', window.innerWidth);
+  }, 500), []);
+
+  useEffect(() => {
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [handleResize]);
+
   return (
     <div className="min-vh-100 d-flex flex-column">
       <AppNavbar />

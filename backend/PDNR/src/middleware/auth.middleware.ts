@@ -7,7 +7,7 @@ export const checkAuth = (req: Request, res: Response, next: NextFunction) => {
     return next();
   } else {
     console.log('User is not authenticated');
-    res.status(401).json({ isAuth: false, success: false, message: 'Unauthorized' });
+    res.status(401).json({ isAuth: false, success: false, message: 'Unauthorized', error: 'SESSION_EXPIRED', code: 'SESSION_EXPIRED' });
   }
 };
 
